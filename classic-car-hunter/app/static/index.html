@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Classic Car Hunter • Plataforma de Importação Sob Demanda</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gold: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
+            slate: { 850: '#111827', 900: '#0b0f19', 950: '#060911' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #060911; color: #f1f5f9; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0b0f19; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    .glass { background: rgba(15, 23, 42, 0.82); backdrop-filter: blur(12px); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- ================================================================= -->
+  <!-- TELA DE LOGIN DOS SÓCIOS                                          -->
+  <!-- ================================================================= -->
+  <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-7 shadow-2xl">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg">
+          🏁
+        </div>
+        <div>
+          <span class="text-[11px] uppercase tracking-widest text-amber-400 font-bold">Importação Sob Demanda • EUA → BR</span>
+          <h1 class="text-xl font-extrabold text-white">Classic Car Hunter</h1>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400 mb-5 leading-relaxed">
+        Entre com sua conta de sócio. Cada pedido de busca que você criar ou rodar enviará os alertas de WhatsApp e E-mail diretamente para o seu perfil.
+      </p>
+
+      <!-- Atalho rápido de seleção de Sócio -->
+      <div class="mb-4">
+        <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Acesso Rápido de Sócio</label>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button type="button" onclick="quickFillPartner('rafael')" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-amber-500/30 text-left transition">
+            <span class="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-bold flex items-center justify-center text-xs">RC</span>
+            <div>
+              <div class="text-xs font-bold text-white">Rafael Campos</div>
+              <div class="text-[10px] text-slate-400">Usuário: rafael</div>
+            </div>
+          </button>
+          <button type="button" onclick="quickFillPartner('marcal')" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-sky-500/30 text-left transition">
+            <span class="w-8 h-8 rounded-full bg-sky-400 text-slate-950 font-bold flex items-center justify-center text-xs">MB</span>
+            <div>
+              <div class="text-xs font-bold text-white">Marçal Borborema</div>
+              <div class="text-[10px] text-slate-400">Usuário: marcal</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <form onsubmit="handleLogin(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs text-slate-300 font-medium mb-1">Usuário ou E-mail do Sócio</label>
+          <input id="loginUsername" type="text" required value="rafael"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-300 font-medium mb-1">Senha Individual</label>
+          <input id="loginPassword" type="password" required value="123456"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none" />
+          <span class="text-[11px] text-slate-500 mt-1 block">Senha inicial padrão: <code class="text-amber-400">123456</code> (alterável no painel)</span>
+        </div>
+        <div id="loginError" class="text-xs text-rose-400 hidden"></div>
+        <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-lg transition">
+          Entrar na Plataforma →
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- TOPBAR EXECUTIVA MULTI-SÓCIO                                      -->
+  <!-- ================================================================= -->
+  <header class="sticky top-0 z-30 glass border-b border-slate-800/80 px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- Logo & Seletor de Busca Sob Demanda -->
+      <div class="flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-lg shadow">
+            🏁
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-white text-base tracking-tight">Classic Car Hunter</span>
+              <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-semibold">Importação Sob Demanda</span>
+            </div>
+            <p class="text-[11px] text-slate-400 hidden sm:block">Monitoramento Multi-Sócio • Base Logística Flórida (EUA → Brasil)</p>
+          </div>
+        </div>
+
+        <!-- Dropdown de Pedidos / Buscas -->
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
+          <span class="text-xs text-amber-400 font-semibold">🔎 Pedido:</span>
+          <select id="watchlistSelect" onchange="onWatchlistChange()" class="bg-transparent text-xs font-bold text-white focus:outline-none pr-2 cursor-pointer max-w-[260px] sm:max-w-[340px]">
+          </select>
+          <button onclick="openWatchlistModal(false)" title="Configurar esta busca e agendamento" class="text-xs px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+            ✏️ Editar
+          </button>
+          <button onclick="openWatchlistModal(true)" title="Criar nova busca sob demanda" class="text-xs px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-semibold transition">
+            + Nova Encomenda
+          </button>
+        </div>
+      </div>
+
+      <!-- Ações Rápidas & Perfil do Sócio Logado -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btnScanNow" onclick="triggerScanNow()" class="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow transition">
+          <span id="scanIcon">🔄</span>
+          <span id="scanBtnText">Varrer 4 Portais Agora</span>
+        </button>
+
+        <button onclick="openSendAlertModal()" class="flex items-center gap-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-semibold text-xs px-3 py-2 rounded-xl transition">
+          📲 Enviar WhatsApp / E-mail
+        </button>
+
+        <button onclick="openPartnersSettingsModal('partners')" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-2 rounded-xl transition">
+          ⚙️ Sócios & Alertas
+        </button>
+
+        <!-- Badge do Sócio Logado -->
+        <div class="flex items-center gap-2 pl-2 border-l border-slate-800">
+          <div id="partnerAvatar" class="w-7 h-7 rounded-full bg-amber-500 text-slate-950 font-extrabold text-xs flex items-center justify-center">
+            RC
+          </div>
+          <div class="text-left hidden md:block">
+            <div id="partnerNameDisplay" class="text-xs font-bold text-white leading-tight">Rafael Campos</div>
+            <button onclick="showLoginModal()" class="text-[10px] text-amber-400 hover:underline">Trocar Sócio</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de Contexto da Busca Ativa (Responsável, Cliente, Agendamento Diário, Base EUA) -->
+    <div class="max-w-7xl mx-auto mt-2.5 pt-2 border-t border-slate-800/60 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+      <div class="flex flex-wrap items-center gap-3">
+        <span id="wlOwnerBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-200 font-medium">
+          👤 Responsável: —
+        </span>
+        <span id="wlClientBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300">
+          📋 Cliente: —
+        </span>
+        <span id="wlScheduleBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300">
+          ⏰ Busca Automática: 3x ao dia
+        </span>
+        <span id="wlTargetLocationBadge" class="inline-flex items-center gap-1 text-slate-400">
+          📍 Base EUA: Deerfield Beach, FL (33441)
+        </span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="lastScanTime" class="text-[11px] text-slate-500">Última varredura: —</span>
+        <button onclick="markAllSeen()" class="text-[11px] text-slate-400 hover:text-white underline">Marcar novos como vistos</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================================================================= -->
+  <!-- CONTEÚDO PRINCIPAL                                                -->
+  <!-- ================================================================= -->
+  <main class="max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 flex-1 space-y-6">
+
+    <!-- KPI CARDS -->
+    <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div onclick="applyQuickKpi('all')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
+        <div class="text-[11px] text-slate-400 font-medium">Total na Busca</div>
+        <div id="kpiTotal" class="text-2xl font-extrabold text-white mt-0.5">0</div>
+        <div id="kpiBySource" class="text-[10px] text-slate-500 mt-1 truncate">4 portais ativos</div>
+      </div>
+
+      <div onclick="applyQuickKpi('interesting_new')" class="cursor-pointer bg-gradient-to-br from-amber-500/15 to-orange-500/5 hover:from-amber-500/25 border border-amber-500/40 rounded-2xl p-3.5 transition">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] text-amber-300 font-bold">🔥 Novidades Relevantes</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">ALERTA</span>
+        </div>
+        <div id="kpiInterestingNew" class="text-2xl font-extrabold text-amber-400 mt-0.5">0</div>
+        <div class="text-[10px] text-amber-200/70 mt-1">Novos c/ alto score no dia</div>
+      </div>
+
+      <div onclick="applyQuickKpi('coachbuilt')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
+        <div class="text-[11px] text-emerald-400 font-medium">🎯 Alvo & Variantes</div>
+        <div id="kpiCoachbuilt" class="text-2xl font-extrabold text-emerald-400 mt-0.5">0</div>
+        <div class="text-[10px] text-slate-500 mt-1">Modelo / Carroceria alvo</div>
+      </div>
+
+      <div onclick="applyQuickKpi('in_budget')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
+        <div class="text-[11px] text-sky-400 font-medium">💵 Na Faixa de Preço</div>
+        <div id="kpiInBudget" class="text-2xl font-extrabold text-sky-400 mt-0.5">0</div>
+        <div id="kpiBudgetLabel" class="text-[10px] text-slate-500 mt-1">$20k a $40k USD</div>
+      </div>
+
+      <div onclick="applyQuickKpi('florida')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
+        <div class="text-[11px] text-purple-400 font-medium">🌴 Flórida & Sudeste</div>
+        <div id="kpiFlorida" class="text-2xl font-extrabold text-purple-400 mt-0.5">0</div>
+        <div class="text-[10px] text-slate-500 mt-1">Próximos ao porto (≤ 750 mi)</div>
+      </div>
+
+      <div onclick="applyQuickKpi('favorites')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
+        <div class="text-[11px] text-rose-400 font-medium">⭐ Favoritos dos Sócios</div>
+        <div id="kpiFavorites" class="text-2xl font-extrabold text-rose-400 mt-0.5">0</div>
+        <div class="text-[10px] text-slate-500 mt-1">Salvos p/ negociação</div>
+      </div>
+    </section>
+
+    <!-- BARRA DE FILTROS -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <!-- Abas de Classificação -->
+        <div class="flex flex-wrap items-center gap-1.5" id="tierTabs">
+          <button data-tier="all" onclick="setTierFilter('all')" class="tier-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition">
+            Todos os Resultados
+          </button>
+          <button data-tier="interesting_new" onclick="setTierFilter('interesting_new')" class="tier-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-amber-300 hover:bg-slate-700 transition">
+            🔥 Novidades Relevantes
+          </button>
+          <button data-tier="coachbuilt" onclick="setTierFilter('coachbuilt')" class="tier-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+            🎯 Alvo Exato & Variantes
+          </button>
+          <button data-tier="priority" onclick="setTierFilter('priority')" class="tier-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+            💰 Alta Prioridade (No Orçamento)
+          </button>
+        </div>
+
+        <!-- Filtro de Portal -->
+        <div class="flex flex-wrap items-center gap-1.5" id="sourceTabs">
+          <button data-source="all" onclick="setSourceFilter('all')" class="src-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-700 text-white">Todos Portais</button>
+          <button data-source="ebay" onclick="setSourceFilter('ebay')" class="src-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white">eBay Motors</button>
+          <button data-source="classiccars" onclick="setSourceFilter('classiccars')" class="src-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white">ClassicCars</button>
+          <button data-source="autotrader" onclick="setSourceFilter('autotrader')" class="src-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white">Autotrader</button>
+          <button data-source="hemmings" onclick="setSourceFilter('hemmings')" class="src-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white">Hemmings</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-800/80">
+        <div>
+          <input id="searchInput" type="text" oninput="debounceLoadListings()" placeholder="Buscar modelo, cidade, carruagem, motor..."
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none" />
+        </div>
+
+        <div>
+          <select id="priceFilter" onchange="loadListings()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
+            <option value="all">💵 Preço: Todos</option>
+            <option value="in_budget">✅ Dentro da Faixa Ideal</option>
+            <option value="near_budget">🤝 Na Faixa + Negociáveis (+25%)</option>
+            <option value="under_45k">📉 Até $45,000 USD</option>
+          </select>
+        </div>
+
+        <div>
+          <select id="distanceFilter" onchange="loadListings()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
+            <option value="">📍 Distância da Flórida: Todas</option>
+            <option value="250">🌴 Até 250 milhas (Flórida)</option>
+            <option value="500">🚗 Até 500 milhas (FL / GA)</option>
+            <option value="850">🗺️ Até 850 milhas (Sudeste EUA)</option>
+            <option value="1500">🇺🇸 Até 1.500 milhas (Costa Leste/Meio-Oeste)</option>
+          </select>
+        </div>
+
+        <div>
+          <select id="sortSelect" onchange="loadListings()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
+            <option value="score">⭐ Ordenar: Maior Relevância (Score)</option>
+            <option value="distance_asc">📍 Mais Próximos de Deerfield Beach, FL</option>
+            <option value="price_asc">💵 Menor Preço (USD)</option>
+            <option value="price_desc">💎 Maior Preço (USD)</option>
+            <option value="newest">🆕 Descobertos Mais Recentemente</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 px-1">
+          <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+            <input id="onlyFavCheckbox" type="checkbox" onchange="loadListings()" class="rounded bg-slate-950 border-slate-700 text-amber-500 focus:ring-0" />
+            <span>⭐ Só Favoritos</span>
+          </label>
+          <span id="resultsCountLabel" class="text-xs font-bold text-amber-400">0 veículos</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- GRADE DE VEÍCULOS -->
+    <section id="listingsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    </section>
+
+  </main>
+
+  <!-- ================================================================= -->
+  <!-- MODAL 1: CRIAR / EDITAR BUSCA SOB DEMANDA & AGENDAMENTO DIÁRIO     -->
+  <!-- ================================================================= -->
+  <div id="watchlistModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div>
+          <span class="text-[10px] uppercase tracking-widest text-amber-400 font-bold">Encomenda de Cliente / Monitoramento</span>
+          <h2 id="wlModalTitle" class="text-lg font-extrabold text-white">Configurar Busca Sob Demanda</h2>
+        </div>
+        <button onclick="closeWatchlistModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <!-- Presets Rápidos de Clássicos Raros -->
+      <div class="mt-3">
+        <span class="text-[11px] text-slate-400 font-semibold block mb-1.5">⚡ Modelos Rápidos de Encomenda (clique para preencher):</span>
+        <div class="flex flex-wrap gap-1.5">
+          <button type="button" onclick="applyPreset('eureka')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30">1960 Cadillac Eureka ($20k-$40k)</button>
+          <button type="button" onclick="applyPreset('mustang')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1967 Ford Mustang Fastback</button>
+          <button type="button" onclick="applyPreset('belair')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1957 Chevrolet Bel Air</button>
+          <button type="button" onclick="applyPreset('corvette')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1963 Chevrolet Corvette C2</button>
+          <button type="button" onclick="applyPreset('porsche')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1972 Porsche 911</button>
+        </div>
+      </div>
+
+      <form onsubmit="saveWatchlistForm(event)" class="space-y-4 mt-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-slate-300 font-semibold mb-1">Nome da Busca / Pedido</label>
+            <input id="wlName" type="text" required placeholder="Ex: Cadillac Eureka 1960 ($20k–$40k | Deerfield Beach)"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">👤 Sócio Responsável pela Busca</label>
+            <select id="wlOwnerPartnerId" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">📋 Nome do Cliente / Projeto (Opcional)</label>
+            <input id="wlClientName" type="text" placeholder="Ex: Encomenda Sr. Carlos - SP"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Marca (Make)</label>
+            <input id="wlMake" type="text" required placeholder="Ex: Cadillac, Ford, Chevrolet..."
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Modelo Principal / Carroceria Alvo</label>
+            <input id="wlModelPrimary" type="text" required placeholder="Ex: Eureka, Mustang, Series 62..."
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-slate-300 font-semibold mb-1">Palavras-Chave Relacionadas / Variantes (separadas por vírgula)</label>
+            <input id="wlKeywords" type="text" placeholder="Ex: eureka, hearse, ambulance, commercial chassis, miller meteor, superior"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Ano Mínimo e Máximo</label>
+            <div class="grid grid-cols-2 gap-2">
+              <input id="wlYearMin" type="number" required min="1900" max="2026" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+              <input id="wlYearMax" type="number" required min="1900" max="2026" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Faixa de Preço Alvo (USD $)</label>
+            <div class="grid grid-cols-2 gap-2">
+              <input id="wlPriceMin" type="number" required step="500" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" placeholder="Mín USD" />
+              <input id="wlPriceMax" type="number" required step="500" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" placeholder="Máx USD" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">📍 Cidade Base nos EUA (Prioridade de Proximidade)</label>
+            <input id="wlCity" type="text" required value="Deerfield Beach" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Estado (UF)</label>
+              <input id="wlState" type="text" required value="FL" maxlength="2" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white uppercase" />
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">ZIP Code</label>
+              <input id="wlZip" type="text" required value="33441" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção de Agendamento Diário e Alertas por Sócio -->
+        <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div class="text-xs font-bold text-amber-400">⏰ Programação de Buscas Diárias & Alertas Automáticos</div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-slate-400 mb-1">Modo de Agendamento</label>
+              <select id="wlScheduleMode" onchange="toggleScheduleModeUI()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+                <option value="times_per_day">Rodar X vezes por dia</option>
+                <option value="fixed_hours">Horários fixos do dia</option>
+                <option value="manual_only">Apenas manual</option>
+              </select>
+            </div>
+
+            <div id="runsPerDayBox">
+              <label class="block text-slate-400 mb-1">Quantas vezes por dia?</label>
+              <select id="wlRunsPerDay" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+                <option value="1">1x por dia (a cada 24h)</option>
+                <option value="2">2x por dia (a cada 12h)</option>
+                <option value="3" selected>3x por dia (a cada 8h)</option>
+                <option value="4">4x por dia (a cada 6h)</option>
+                <option value="6">6x por dia (a cada 4h)</option>
+                <option value="12">12x por dia (a cada 2h)</option>
+              </select>
+            </div>
+
+            <div id="fixedHoursBox" class="hidden">
+              <label class="block text-slate-400 mb-1">Horários (HH:MM)</label>
+              <input id="wlFixedHours" type="text" value="08:00,14:00,20:00" placeholder="08:00,14:00,20:00"
+                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">Enviar Alerta Para</label>
+              <select id="wlNotifyTarget" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+                <option value="owner">Apenas o Sócio que fez a busca</option>
+                <option value="both">Ambos os Sócios</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-4 pt-1">
+            <label class="inline-flex items-center gap-2 text-slate-200 cursor-pointer">
+              <input id="wlNotifyOnlyInteresting" type="checkbox" checked class="rounded bg-slate-900 border-slate-700 text-amber-500" />
+              <span>Só disparar WhatsApp/E-mail se houver <strong>veículo NOVO relevante</strong> ou <strong>queda de preço</strong></span>
+            </label>
+            <div class="flex items-center gap-1.5">
+              <span class="text-slate-400">Score mín. p/ alerta:</span>
+              <input id="wlMinAlertScore" type="number" value="55" min="10" max="95" class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-center" />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <button id="btnDeleteWatchlist" type="button" onclick="deleteCurrentWatchlist()" class="text-rose-400 hover:underline hidden">
+            🗑️ Excluir esta encomenda
+          </button>
+          <div class="flex items-center gap-2 ml-auto">
+            <button type="button" onclick="closeWatchlistModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700">Cancelar</button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow">
+              💾 Salvar Busca Sob Demanda
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL 2: SÓCIOS, SENHAS & CONFIGURAÇÃO WHATSAPP / E-MAIL (SMTP)   -->
+  <!-- ================================================================= -->
+  <div id="partnersModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div>
+          <span class="text-[10px] uppercase tracking-widest text-amber-400 font-bold">Gestão da Sociedade & Canais de Alerta</span>
+          <h2 class="text-lg font-extrabold text-white">Sócios, WhatsApp, E-mail & Histórico de Alertas</h2>
+        </div>
+        <button onclick="closePartnersModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <!-- Abas Internas -->
+      <div class="flex gap-2 mt-4 border-b border-slate-800 pb-2 text-xs font-bold">
+        <button onclick="switchPartnerTab('partners')" id="tabBtnPartners" class="px-3.5 py-1.5 rounded-xl bg-amber-500 text-slate-950">👥 Perfis dos Sócios & Senhas</button>
+        <button onclick="switchPartnerTab('channels')" id="tabBtnChannels" class="px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300">📲 Configurar WhatsApp & E-mail (SMTP)</button>
+        <button onclick="switchPartnerTab('history')" id="tabBtnHistory" class="px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300">📜 Histórico de Envios</button>
+      </div>
+
+      <!-- ABA 1: PERFIS DOS SÓCIOS -->
+      <div id="tabContentPartners" class="space-y-4 mt-4 text-xs">
+        <p class="text-slate-400">
+          Cadastre o <strong>WhatsApp (com DDI, ex: +5511999999999)</strong> e o <strong>E-mail</strong> de cada sócio. Quando um sócio cria ou agenda uma busca, o agente envia as novidades diretamente para ele.
+        </p>
+        <div id="partnersListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+      </div>
+
+      <!-- ABA 2: INTEGRAÇÃO WHATSAPP & E-MAIL -->
+      <div id="tabContentChannels" class="space-y-5 mt-4 text-xs hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Bloco E-mail SMTP -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+            <div class="font-bold text-amber-400 text-sm">📧 Configuração de E-mail (SMTP / Gmail)</div>
+            <p class="text-[11px] text-slate-400">Para Gmail, use <code>smtp.gmail.com</code> (Porta 587) e uma <strong>Senha de App</strong> da sua conta Google.</p>
+            <div>
+              <label class="block text-slate-300 mb-1">Servidor SMTP</label>
+              <input id="cfgSmtpHost" type="text" placeholder="smtp.gmail.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-slate-300 mb-1">Porta SMTP</label>
+                <input id="cfgSmtpPort" type="number" value="587" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+              </div>
+              <div>
+                <label class="block text-slate-300 mb-1">Nome do Remetente</label>
+                <input id="cfgSmtpFromName" type="text" placeholder="Classic Car Hunter" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-slate-300 mb-1">E-mail Remetente (Login SMTP)</label>
+              <input id="cfgSmtpUser" type="email" placeholder="sua-importadora@gmail.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            </div>
+            <div>
+              <label class="block text-slate-300 mb-1">Senha de App do E-mail</label>
+              <input id="cfgSmtpPassword" type="password" placeholder="xxxx xxxx xxxx xxxx" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            </div>
+          </div>
+
+          <!-- Bloco WhatsApp API -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+            <div class="font-bold text-emerald-400 text-sm">💬 Integração Automática de WhatsApp</div>
+            <p class="text-[11px] text-slate-400">
+              Suporta disparo automático em segundo plano via <strong>CallMeBot</strong> (gratuito), <strong>Z-API</strong>, <strong>Evolution API</strong>, <strong>UltraMsg</strong>, <strong>Twilio</strong> ou <strong>Webhook</strong>.
+            </p>
+            <div>
+              <label class="block text-slate-300 mb-1">Provedor de WhatsApp</label>
+              <select id="cfgWaProvider" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white">
+                <option value="callmebot">CallMeBot (Gratuito p/ número dos sócios)</option>
+                <option value="zapi">Z-API</option>
+                <option value="evolution">Evolution API</option>
+                <option value="ultramsg">UltraMsg</option>
+                <option value="twilio">Twilio WhatsApp API</option>
+                <option value="webhook">Webhook HTTP (n8n / Make / Zapier)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 mb-1">API Key / Token</label>
+              <input id="cfgWaApiKey" type="text" placeholder="Chave da API (CallMeBot, Z-API, Evolution...)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-slate-300 mb-1">Instance ID (Z-API/Evolution)</label>
+                <input id="cfgWaInstance" type="text" placeholder="Opcional p/ CallMeBot" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+              </div>
+              <div>
+                <label class="block text-slate-300 mb-1">URL Base / Webhook</label>
+                <input id="cfgWaUrl" type="text" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+              </div>
+            </div>
+            <div class="pt-1 text-[11px] text-slate-400">
+              💡 <strong>Dica:</strong> Mesmo sem chave de API preenchida, o sistema gera o card formatado e abre o envio direto pelo <strong>WhatsApp Web/App (wa.me)</strong> com 1 clique.
+            </div>
+          </div>
+        </div>
+
+        <!-- Parâmetros Padrão da Calculadora de Importação -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+          <div class="font-bold text-sky-400 text-sm mb-2">🚢 Parâmetros Padrão de Importação (EUA → Brasil)</div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label class="block text-slate-400 mb-1">Câmbio Dólar (R$)</label>
+              <input id="cfgUsdBrl" type="number" step="0.05" value="5.75" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Guincho EUA ($/milha)</label>
+              <input id="cfgTowPerMile" type="number" step="0.05" value="1.65" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Frete Marítimo FL→BR ($)</label>
+              <input id="cfgOceanFreight" type="number" step="100" value="2800" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Impostos Clássico >30a (%)</label>
+              <input id="cfgClassicTaxPct" type="number" step="1" value="95" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <button type="button" onclick="sendTestAlert()" class="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-bold">
+            🧪 Testar Disparo p/ Sócio Logado
+          </button>
+          <button type="button" onclick="saveChannelSettings()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow">
+            💾 Salvar Configurações
+          </button>
+        </div>
+      </div>
+
+      <!-- ABA 3: HISTÓRICO DE ENVIOS -->
+      <div id="tabContentHistory" class="space-y-3 mt-4 text-xs hidden">
+        <div id="notificationsHistoryList" class="space-y-2.5">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL 3: ENVIAR RESUMO POR WHATSAPP / E-MAIL PARA O SÓCIO         -->
+  <!-- ================================================================= -->
+  <div id="sendAlertModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-xs">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div>
+          <span class="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Relatório de Oportunidades</span>
+          <h2 class="text-lg font-extrabold text-white">Enviar Resultados por WhatsApp / E-mail</h2>
+        </div>
+        <button onclick="closeSendAlertModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Enviar para qual Sócio?</label>
+          <select id="manualNotifyPartnerSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Quais veículos incluir?</label>
+          <select id="manualNotifyScope" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+            <option value="top">⭐ Top Oportunidades da Busca (Mais Relevantes)</option>
+            <option value="new_interesting">🔥 Apenas Novidades Relevantes Não Vistas</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <label class="inline-flex items-center gap-2 text-slate-200 cursor-pointer">
+          <input id="chkSendWa" type="checkbox" checked class="rounded bg-slate-950 border-slate-700 text-emerald-500" />
+          <span>📲 WhatsApp</span>
+        </label>
+        <label class="inline-flex items-center gap-2 text-slate-200 cursor-pointer">
+          <input id="chkSendEmail" type="checkbox" checked class="rounded bg-slate-950 border-slate-700 text-amber-500" />
+          <span>📧 E-mail</span>
+        </label>
+      </div>
+
+      <div id="alertDispatchResultBox" class="hidden bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+        <div id="alertDispatchStatusText" class="font-bold text-emerald-400"></div>
+        <textarea id="alertPreviewTextarea" rows="7" readonly class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-[11px] text-slate-300 font-mono"></textarea>
+        <div class="flex flex-wrap items-center gap-2">
+          <a id="directWaLinkBtn" href="#" target="_blank" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold inline-flex items-center gap-1.5">
+            📲 Abrir e Enviar no WhatsApp Agora →
+          </a>
+          <button type="button" onclick="copyPreviewText()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200">
+            📋 Copiar Texto
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="closeSendAlertModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300">Fechar</button>
+        <button type="button" onclick="executeManualSendAlert()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow">
+          🚀 Disparar Relatório Agora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL 4: SIMULADOR DE IMPORTAÇÃO EUA -> BRASIL (POR VEÍCULO)      -->
+  <!-- ================================================================= -->
+  <div id="importCalcModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-xs">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div>
+          <span class="text-[10px] uppercase tracking-widest text-sky-400 font-bold">Simulador de Viabilidade • Clássicos &gt; 30 Anos</span>
+          <h2 id="calcModalCarTitle" class="text-base font-extrabold text-white truncate max-w-md">Simulação de Importação</h2>
+        </div>
+        <button onclick="closeImportCalcModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-slate-400 mb-1">Valor Negociado nos EUA (USD $)</label>
+          <input id="calcPriceUsd" type="number" step="500" oninput="recalcModalImport()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Distância até a Flórida (Milhas)</label>
+          <input id="calcDistMiles" type="number" step="10" oninput="recalcModalImport()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Câmbio Dólar (R$ / USD)</label>
+          <input id="calcRateBrl" type="number" step="0.05" oninput="recalcModalImport()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Frete Interno EUA até FL (USD $)</label>
+          <input id="calcInlandTowUsd" type="number" step="50" oninput="recalcModalImport(true)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        </div>
+      </div>
+
+      <div id="calcBreakdownBox" class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">
+      </div>
+
+      <div class="flex items-center justify-between pt-1">
+        <button type="button" onclick="shareQuoteOnWhatsApp()" class="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-bold">
+          📲 Enviar Cotação p/ Cliente ou Sócio no WhatsApp
+        </button>
+        <button type="button" onclick="closeImportCalcModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl bg-slate-900 border border-amber-500/50 text-xs font-semibold text-white shadow-2xl hidden"></div>
+
+  <script>
+    let authToken = localStorage.getItem('cch_token') || '';
+    let currentPartner = null;
+    let allPartners = [];
+    let allWatchlists = [];
+    let activeWatchlistId = 1;
+    let systemSettings = {};
+    let currentTierFilter = 'all';
+    let currentSourceFilter = 'all';
+    let isCreatingWatchlist = false;
+    let currentListings = [];
+    let activeCalcListing = null;
+    let searchTimer = null;
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 4200);
+    }
+
+    function apiHeaders() {
+      const h = { 'Content-Type': 'application/json' };
+      if (authToken) h['Authorization'] = `Bearer ${authToken}`;
+      return h;
+    }
+
+    // =====================================================================
+    // AUTENTICAÇÃO DOS SÓCIOS
+    // =====================================================================
+    function quickFillPartner(username) {
+      document.getElementById('loginUsername').value = username;
+      document.getElementById('loginPassword').value = '123456';
+    }
+
+    function showLoginModal() {
+      document.getElementById('loginOverlay').classList.remove('hidden');
+    }
+
+    async function checkAuthOnLoad() {
+      if (!authToken) {
+        showLoginModal();
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth/me', { headers: apiHeaders() });
+        if (!res.ok) {
+          showLoginModal();
+          return;
+        }
+        const data = await res.json();
+        currentPartner = data.partner;
+        updatePartnerHeaderUI();
+      } catch (e) {
+        showLoginModal();
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const errEl = document.getElementById('loginError');
+      errEl.classList.add('hidden');
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errEl.textContent = data.detail || 'Credenciais inválidas';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        authToken = data.token;
+        localStorage.setItem('cch_token', authToken);
+        currentPartner = data.partner;
+        document.getElementById('loginOverlay').classList.add('hidden');
+        updatePartnerHeaderUI();
+        showToast(`Bem-vindo, ${currentPartner.name}!`);
+        await loadDashboard();
+      } catch (err) {
+        errEl.textContent = 'Erro de conexão com o servidor.';
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function updatePartnerHeaderUI() {
+      if (!currentPartner) return;
+      const av = document.getElementById('partnerAvatar');
+      const nm = document.getElementById('partnerNameDisplay');
+      const initials = currentPartner.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      av.textContent = initials;
+      av.style.backgroundColor = currentPartner.avatar_color || '#f59e0b';
+      nm.textContent = currentPartner.name;
+    }
+
+    // =====================================================================
+    // DASHBOARD & LISTINGS
+    // =====================================================================
+    async function loadDashboard() {
+      const url = activeWatchlistId ? `/api/dashboard?watchlist_id=${activeWatchlistId}` : '/api/dashboard';
+      const res = await fetch(url, { headers: apiHeaders() });
+      const data = await res.json();
+
+      allPartners = data.partners || [];
+      allWatchlists = data.watchlists || [];
+      activeWatchlistId = data.active_watchlist_id;
+      systemSettings = data.settings || {};
+
+      // Render Watchlist Select
+      const sel = document.getElementById('watchlistSelect');
+      sel.innerHTML = allWatchlists.map(w => {
+        const clientTag = w.client_name ? ` [${w.client_name}]` : '';
+        return `<option value="${w.id}" ${w.id === activeWatchlistId ? 'selected' : ''}>${w.name}${clientTag} (${w.owner_name})</option>`;
+      }).join('');
+
+      const activeWl = allWatchlists.find(w => w.id === activeWatchlistId) || allWatchlists[0] || {};
+      document.getElementById('wlOwnerBadge').innerHTML = `👤 Busca de: <strong class="text-white ml-1">${activeWl.owner_name || 'Sócio 1'}</strong>`;
+      document.getElementById('wlClientBadge').textContent = `📋 Cliente: ${activeWl.client_name || 'Estoque / Demanda Interna'}`;
+
+      let schedText = 'Manual';
+      if (activeWl.schedule_mode === 'times_per_day') {
+        schedText = `${activeWl.runs_per_day || 3}x ao dia (Automático)`;
+      } else if (activeWl.schedule_mode === 'fixed_hours') {
+        schedText = `Horários: ${activeWl.fixed_hours || '08:00, 14:00, 20:00'}`;
+      }
+      document.getElementById('wlScheduleBadge').textContent = `⏰ Agendamento: ${schedText}`;
+      document.getElementById('wlTargetLocationBadge').textContent = `📍 Base EUA: ${activeWl.target_city || 'Deerfield Beach'}, ${activeWl.target_state || 'FL'} (${activeWl.target_zip || '33441'})`;
+      document.getElementById('lastScanTime').textContent = activeWl.last_run_at ? `Última varredura: ${new Date(activeWl.last_run_at).toLocaleString('pt-BR')}` : 'Última varredura: Pronta p/ iniciar';
+
+      // KPIs
+      const st = data.stats || {};
+      document.getElementById('kpiTotal').textContent = st.total_listings || 0;
+      document.getElementById('kpiInterestingNew').textContent = st.interesting_new_count || 0;
+      document.getElementById('kpiCoachbuilt').textContent = st.exact_and_coachbuilt || 0;
+      document.getElementById('kpiInBudget').textContent = st.in_budget_count || 0;
+      document.getElementById('kpiFlorida').textContent = st.florida_southeast_count || 0;
+      document.getElementById('kpiFavorites').textContent = st.favorites_count || 0;
+      document.getElementById('kpiBudgetLabel').textContent = `$${((activeWl.price_min || 20000)/1000).toFixed(0)}k a $${((activeWl.price_max || 40000)/1000).toFixed(0)}k USD`;
+
+      const bs = st.by_source || {};
+      document.getElementById('kpiBySource').textContent = `eBay:${bs.ebay||0} • Auto:${bs.autotrader||0} • CC:${bs.classiccars||0} • Hem:${bs.hemmings||0}`;
+
+      await loadListings();
+    }
+
+    function onWatchlistChange() {
+      activeWatchlistId = parseInt(document.getElementById('watchlistSelect').value, 10);
+      loadDashboard();
+    }
+
+    function setTierFilter(tier) {
+      currentTierFilter = tier;
+      document.querySelectorAll('.tier-btn').forEach(btn => {
+        if (btn.dataset.tier === tier) {
+          btn.className = 'tier-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition';
+        } else {
+          btn.className = 'tier-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+        }
+      });
+      loadListings();
+    }
+
+    function setSourceFilter(src) {
+      currentSourceFilter = src;
+      document.querySelectorAll('.src-btn').forEach(btn => {
+        if (btn.dataset.source === src) {
+          btn.className = 'src-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-700 text-white';
+        } else {
+          btn.className = 'src-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white';
+        }
+      });
+      loadListings();
+    }
+
+    function applyQuickKpi(type) {
+      document.getElementById('onlyFavCheckbox').checked = false;
+      document.getElementById('priceFilter').value = 'all';
+      document.getElementById('distanceFilter').value = '';
+      if (type === 'all') {
+        setTierFilter('all');
+      } else if (type === 'interesting_new') {
+        setTierFilter('interesting_new');
+      } else if (type === 'coachbuilt') {
+        setTierFilter('coachbuilt');
+      } else if (type === 'in_budget') {
+        document.getElementById('priceFilter').value = 'near_budget';
+        setTierFilter('all');
+      } else if (type === 'florida') {
+        document.getElementById('distanceFilter').value = '850';
+        document.getElementById('sortSelect').value = 'distance_asc';
+        setTierFilter('all');
+      } else if (type === 'favorites') {
+        document.getElementById('onlyFavCheckbox').checked = true;
+        setTierFilter('all');
+      }
+    }
+
+    function debounceLoadListings() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(loadListings, 260);
+    }
+
+    async function loadListings() {
+      const params = new URLSearchParams();
+      params.set('watchlist_id', activeWatchlistId);
+      params.set('source', currentSourceFilter);
+
+      if (currentTierFilter === 'interesting_new') {
+        params.set('only_interesting_new', 'true');
+      } else {
+        params.set('tier', currentTierFilter);
+      }
+
+      params.set('price_filter', document.getElementById('priceFilter').value);
+      const maxDist = document.getElementById('distanceFilter').value;
+      if (maxDist) params.set('max_distance', maxDist);
+      if (document.getElementById('onlyFavCheckbox').checked) params.set('only_favorites', 'true');
+      const q = document.getElementById('searchInput').value.trim();
+      if (q) params.set('search', q);
+      params.set('sort_by', document.getElementById('sortSelect').value);
+
+      const res = await fetch(`/api/listings?${params.toString()}`, { headers: apiHeaders() });
+      const data = await res.json();
+      currentListings = data.items || [];
+      document.getElementById('resultsCountLabel').textContent = `${data.count || 0} veículo(s)`;
+      renderListingsGrid(currentListings);
+    }
+
+    function renderListingsGrid(items) {
+      const grid = document.getElementById('listingsGrid');
+      if (!items.length) {
+        grid.innerHTML = `
+          <div class="col-span-full bg-slate-900/70 border border-slate-800 rounded-2xl p-10 text-center space-y-3">
+            <div class="text-3xl">🔎</div>
+            <div class="text-base font-bold text-white">Nenhum veículo encontrado para este filtro</div>
+            <p class="text-xs text-slate-400 max-w-md mx-auto">Clique em "Varrer 4 Portais Agora" no topo para buscar anúncios ao vivo ou limpe os filtros selecionados.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const sourceColors = {
+        ebay: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+        classiccars: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+        autotrader: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+        hemmings: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+      };
+
+      grid.innerHTML = items.map((it, idx) => {
+        const srcBadge = sourceColors[it.source] || 'bg-slate-800 text-slate-300';
+        const scoreColor = it.match_score >= 70 ? 'bg-emerald-500 text-slate-950' : (it.match_score >= 52 ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-slate-200');
+        const imp = it.import_estimate;
+        const brBadge = imp ? `<span class="text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-lg">🚢 ${imp.short_display}</span>` : '';
+        const newBadge = it.is_new ? `<span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-400 text-slate-950">NOVO</span>` : '';
+        const distBadge = it.distance_miles != null
+          ? `<span class="text-[11px] font-semibold ${it.distance_miles <= 350 ? 'text-emerald-400' : 'text-slate-300'}">📍 ${Math.round(it.distance_miles)} mi de Deerfield Beach</span>`
+          : `<span class="text-[11px] text-slate-400">📍 ${it.location || 'EUA'}</span>`;
+
+        const imgHtml = it.image_url
+          ? `<img src="${it.image_url}" alt="${it.title}" loading="lazy" onerror="this.src='https://placehold.co/600x400/0f172a/f59e0b?text=Cl%C3%A1ssico+EUA'" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300" />`
+          : `<div class="w-full h-48 bg-slate-950 flex items-center justify-center text-slate-600 text-xs">Sem Foto Disponível</div>`;
+
+        return `
+          <article class="bg-slate-900 border border-slate-800/90 hover:border-amber-500/40 rounded-2xl overflow-hidden flex flex-col justify-between shadow-lg transition group">
+            <div>
+              <!-- Imagem & Badges Superiores -->
+              <div class="relative overflow-hidden bg-slate-950">
+                ${imgHtml}
+                <div class="absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5">
+                  <span class="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-md border backdrop-blur-md ${srcBadge}">${it.source}</span>
+                  ${newBadge}
+                </div>
+                <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                  <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-md shadow ${scoreColor}">Score ${it.match_score}</span>
+                </div>
+                <div class="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between">
+                  <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-slate-950/90 text-slate-100 border border-slate-700/80 backdrop-blur-md">
+                    ${it.match_tier_label}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Corpo do Card -->
+              <div class="p-4 space-y-2.5">
+                <h3 class="font-extrabold text-white text-sm leading-snug line-clamp-2" title="${it.title}">
+                  ${it.title}
+                </h3>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                  <div class="text-lg font-black text-emerald-400">${it.price_display || 'Sob consulta'}</div>
+                  ${brBadge}
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-800/70">
+                  ${distBadge}
+                  <span class="text-[11px] text-slate-500 truncate max-w-[130px]">${it.location || ''}</span>
+                </div>
+
+                <!-- Motivos de Relevância -->
+                <div class="flex flex-wrap gap-1 pt-1">
+                  ${(it.match_reasons || []).slice(0, 3).map(r => `<span class="text-[10px] px-2 py-0.5 rounded bg-slate-800/90 text-slate-300">${r}</span>`).join('')}
+                </div>
+
+                <!-- Notas dos Sócios -->
+                <div class="pt-1">
+                  <input type="text" value="${(it.notes || '').replace(/"/g, '&quot;')}"
+                    placeholder="📝 Adicionar nota p/ o sócio (ex: ligar p/ vendedor)..."
+                    onblur="saveListingNote('${encodeURIComponent(it.id)}', this.value)"
+                    class="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-slate-200 focus:border-amber-500 focus:outline-none" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Rodapé de Ações do Card -->
+            <div class="px-4 py-3 bg-slate-950/60 border-t border-slate-800/80 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <button onclick="toggleFavorite('${encodeURIComponent(it.id)}', ${!it.is_favorite})"
+                  title="Favoritar veículo"
+                  class="px-2.5 py-1.5 rounded-lg text-xs border transition ${it.is_favorite ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 font-bold' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}">
+                  ${it.is_favorite ? '⭐ Favorito' : '☆ Favoritar'}
+                </button>
+                <button onclick="openImportCalcModal(${idx})"
+                  title="Simular custos de importação para o Brasil"
+                  class="px-2.5 py-1.5 rounded-lg text-xs bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 font-semibold transition">
+                  🚢 Simular BR
+                </button>
+                <button onclick="dismissListing('${encodeURIComponent(it.id)}')"
+                  title="Descartar anúncio"
+                  class="px-2 py-1.5 rounded-lg text-xs bg-slate-800 hover:bg-rose-500/20 text-slate-500 hover:text-rose-300 transition">
+                  ✕
+                </button>
+              </div>
+
+              <a href="${it.url}" target="_blank" rel="noopener"
+                class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">
+                Abrir Anúncio ↗
+              </a>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    // =====================================================================
+    // AÇÕES NOS ANÚNCIOS & VARREDURA
+    // =====================================================================
+    async function toggleFavorite(encodedId, fav) {
+      await fetch(`/api/listings/${encodedId}`, {
+        method: 'PATCH',
+        headers: apiHeaders(),
+        body: JSON.stringify({ is_favorite: fav })
+      });
+      await loadDashboard();
+    }
+
+    async function dismissListing(encodedId) {
+      await fetch(`/api/listings/${encodedId}`, {
+        method: 'PATCH',
+        headers: apiHeaders(),
+        body: JSON.stringify({ is_dismissed: true })
+      });
+      await loadDashboard();
+    }
+
+    async function saveListingNote(encodedId, notes) {
+      await fetch(`/api/listings/${encodedId}`, {
+        method: 'PATCH',
+        headers: apiHeaders(),
+        body: JSON.stringify({ notes })
+      });
+    }
+
+    async function markAllSeen() {
+      await fetch(`/api/mark-all-seen?watchlist_id=${activeWatchlistId}`, { method: 'POST', headers: apiHeaders() });
+      showToast('Todos os veículos desta busca foram marcados como vistos.');
+      await loadDashboard();
+    }
+
+    async function triggerScanNow() {
+      const btn = document.getElementById('btnScanNow');
+      const txt = document.getElementById('scanBtnText');
+      btn.disabled = true;
+      txt.textContent = 'Varrendo 4 Portais...';
+      showToast('Iniciando varredura ao vivo nos 4 portais...');
+      try {
+        const res = await fetch(`/api/scan/${activeWatchlistId}`, { method: 'POST', headers: apiHeaders() });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.detail || 'Varredura em andamento.');
+        } else {
+          showToast(`Varredura concluída: ${data.total_scraped} veículos (${data.interesting_new_listings || 0} novidades relevantes)!`);
+        }
+        await loadDashboard();
+      } catch (e) {
+        showToast('Erro durante a varredura.');
+      } finally {
+        btn.disabled = false;
+        txt.textContent = 'Varrer 4 Portais Agora';
+      }
+    }
+
+    // =====================================================================
+    // MODAL DE BUSCA SOB DEMANDA (CRIAR / EDITAR)
+    // =====================================================================
+    function toggleScheduleModeUI() {
+      const mode = document.getElementById('wlScheduleMode').value;
+      document.getElementById('runsPerDayBox').classList.toggle('hidden', mode !== 'times_per_day');
+      document.getElementById('fixedHoursBox').classList.toggle('hidden', mode !== 'fixed_hours');
+    }
+
+    function applyPreset(key) {
+      const presets = {
+        eureka: {
+          name: 'Cadillac Eureka 1960 ($20k–$40k | Deerfield Beach)',
+          make: 'Cadillac', model: 'Eureka',
+          kw: 'eureka, hearse, ambulance, commercial chassis, flower car, miller meteor, superior, funeral coach',
+          ymin: 1960, ymax: 1960, pmin: 20000, pmax: 40000
+        },
+        mustang: {
+          name: 'Ford Mustang Fastback 1967–1968 ($35k–$65k)',
+          make: 'Ford', model: 'Mustang',
+          kw: 'fastback, gt, gta, 390, 289, bullitt, shelby',
+          ymin: 1967, ymax: 1968, pmin: 35000, pmax: 65000
+        },
+        belair: {
+          name: 'Chevrolet Bel Air 1957 Conversível / Hardtop ($35k–$60k)',
+          make: 'Chevrolet', model: 'Bel Air',
+          kw: 'bel air, belair, nomad, convertible, sport coupe, 2-door hardtop',
+          ymin: 1957, ymax: 1957, pmin: 35000, pmax: 60000
+        },
+        corvette: {
+          name: 'Chevrolet Corvette C2 Sting Ray 1963–1967 ($50k–$85k)',
+          make: 'Chevrolet', model: 'Corvette',
+          kw: 'sting ray, stingray, coupe, convertible, 327, 427',
+          ymin: 1963, ymax: 1967, pmin: 50000, pmax: 85000
+        },
+        porsche: {
+          name: 'Porsche 911 T / E / S 1969–1973 ($60k–$110k)',
+          make: 'Porsche', model: '911',
+          kw: '911t, 911e, 911s, targa, coupe, air cooled',
+          ymin: 1969, ymax: 1973, pmin: 60000, pmax: 110000
+        }
+      };
+      const p = presets[key];
+      if (!p) return;
+      document.getElementById('wlName').value = p.name;
+      document.getElementById('wlMake').value = p.make;
+      document.getElementById('wlModelPrimary').value = p.model;
+      document.getElementById('wlKeywords').value = p.kw;
+      document.getElementById('wlYearMin').value = p.ymin;
+      document.getElementById('wlYearMax').value = p.ymax;
+      document.getElementById('wlPriceMin').value = p.pmin;
+      document.getElementById('wlPriceMax').value = p.pmax;
+    }
+
+    function openWatchlistModal(createNew) {
+      isCreatingWatchlist = createNew;
+      const ownerSel = document.getElementById('wlOwnerPartnerId');
+      ownerSel.innerHTML = allPartners.map(p => `<option value="${p.id}">${p.name} (${p.role})</option>`).join('');
+
+      const delBtn = document.getElementById('btnDeleteWatchlist');
+      if (createNew) {
+        document.getElementById('wlModalTitle').textContent = 'Nova Encomenda / Busca Sob Demanda';
+        delBtn.classList.add('hidden');
+        document.getElementById('wlName').value = '';
+        document.getElementById('wlClientName').value = '';
+        document.getElementById('wlMake').value = '';
+        document.getElementById('wlModelPrimary').value = '';
+        document.getElementById('wlKeywords').value = '';
+        document.getElementById('wlYearMin').value = 1960;
+        document.getElementById('wlYearMax').value = 1965;
+        document.getElementById('wlPriceMin').value = 20000;
+        document.getElementById('wlPriceMax').value = 45000;
+        document.getElementById('wlCity').value = 'Deerfield Beach';
+        document.getElementById('wlState').value = 'FL';
+        document.getElementById('wlZip').value = '33441';
+        ownerSel.value = currentPartner ? currentPartner.id : 1;
+        document.getElementById('wlScheduleMode').value = 'times_per_day';
+        document.getElementById('wlRunsPerDay').value = '3';
+        document.getElementById('wlFixedHours').value = '08:00,14:00,20:00';
+        document.getElementById('wlNotifyTarget').value = 'owner';
+        document.getElementById('wlNotifyOnlyInteresting').checked = true;
+        document.getElementById('wlMinAlertScore').value = 55;
+      } else {
+        const wl = allWatchlists.find(w => w.id === activeWatchlistId) || allWatchlists[0];
+        document.getElementById('wlModalTitle').textContent = `Editar Busca #${wl.id}`;
+        delBtn.classList.toggle('hidden', wl.id === 1);
+        document.getElementById('wlName').value = wl.name || '';
+        document.getElementById('wlClientName').value = wl.client_name || '';
+        document.getElementById('wlMake').value = wl.make || '';
+        document.getElementById('wlModelPrimary').value = wl.model_primary || '';
+        document.getElementById('wlKeywords').value = wl.related_keywords || '';
+        document.getElementById('wlYearMin').value = wl.year_min || 1960;
+        document.getElementById('wlYearMax').value = wl.year_max || 1960;
+        document.getElementById('wlPriceMin').value = wl.price_min || 20000;
+        document.getElementById('wlPriceMax').value = wl.price_max || 40000;
+        document.getElementById('wlCity').value = wl.target_city || 'Deerfield Beach';
+        document.getElementById('wlState').value = wl.target_state || 'FL';
+        document.getElementById('wlZip').value = wl.target_zip || '33441';
+        ownerSel.value = wl.owner_partner_id || 1;
+        document.getElementById('wlScheduleMode').value = wl.schedule_mode || 'times_per_day';
+        document.getElementById('wlRunsPerDay').value = String(wl.runs_per_day || 3);
+        document.getElementById('wlFixedHours').value = wl.fixed_hours || '08:00,14:00,20:00';
+        document.getElementById('wlNotifyTarget').value = wl.notify_target || 'owner';
+        document.getElementById('wlNotifyOnlyInteresting').checked = wl.notify_only_new_interesting !== 0;
+        document.getElementById('wlMinAlertScore').value = wl.min_alert_score || 55;
+      }
+      toggleScheduleModeUI();
+      document.getElementById('watchlistModal').classList.remove('hidden');
+    }
+
+    function closeWatchlistModal() {
+      document.getElementById('watchlistModal').classList.add('hidden');
+    }
+
+    async function saveWatchlistForm(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('wlName').value.trim(),
+        client_name: document.getElementById('wlClientName').value.trim(),
+        owner_partner_id: parseInt(document.getElementById('wlOwnerPartnerId').value, 10),
+        make: document.getElementById('wlMake').value.trim(),
+        model_primary: document.getElementById('wlModelPrimary').value.trim(),
+        related_keywords: document.getElementById('wlKeywords').value.trim(),
+        year_min: parseInt(document.getElementById('wlYearMin').value, 10),
+        year_max: parseInt(document.getElementById('wlYearMax').value, 10),
+        price_min: parseInt(document.getElementById('wlPriceMin').value, 10),
+        price_max: parseInt(document.getElementById('wlPriceMax').value, 10),
+        target_city: document.getElementById('wlCity').value.trim(),
+        target_state: document.getElementById('wlState').value.trim().toUpperCase(),
+        target_zip: document.getElementById('wlZip').value.trim(),
+        schedule_mode: document.getElementById('wlScheduleMode').value,
+        runs_per_day: parseInt(document.getElementById('wlRunsPerDay').value, 10),
+        fixed_hours: document.getElementById('wlFixedHours').value.trim(),
+        notify_target: document.getElementById('wlNotifyTarget').value,
+        notify_only_new_interesting: document.getElementById('wlNotifyOnlyInteresting').checked ? 1 : 0,
+        min_alert_score: parseInt(document.getElementById('wlMinAlertScore').value, 10) || 55,
+        sources: 'ebay,autotrader,classiccars,hemmings',
+        is_active: 1
+      };
+
+      const url = isCreatingWatchlist ? '/api/watchlists' : `/api/watchlists/${activeWatchlistId}`;
+      const method = isCreatingWatchlist ? 'POST' : 'PUT';
+      const res = await fetch(url, { method, headers: apiHeaders(), body: JSON.stringify(payload) });
+      const saved = await res.json();
+      if (res.ok) {
+        activeWatchlistId = saved.id;
+        closeWatchlistModal();
+        showToast(isCreatingWatchlist ? 'Nova encomenda criada! Clique em "Varrer 4 Portais Agora" para buscar veículos.' : 'Configurações da busca atualizadas!');
+        await loadDashboard();
+      }
+    }
+
+    async function deleteCurrentWatchlist() {
+      if (!confirm('Tem certeza que deseja excluir esta encomenda e seus resultados?')) return;
+      const res = await fetch(`/api/watchlists/${activeWatchlistId}`, { method: 'DELETE', headers: apiHeaders() });
+      if (res.ok) {
+        activeWatchlistId = 1;
+        closeWatchlistModal();
+        showToast('Encomenda removida.');
+        await loadDashboard();
+      }
+    }
+
+    // =====================================================================
+    // MODAL DE SÓCIOS, CANAIS (WHATSAPP / SMTP) & HISTÓRICO
+    // =====================================================================
+    async function openPartnersSettingsModal(initialTab = 'partners') {
+      document.getElementById('partnersModal').classList.remove('hidden');
+      renderPartnersCards();
+      populateChannelSettingsForm();
+      await loadNotificationsHistory();
+      switchPartnerTab(initialTab);
+    }
+
+    function closePartnersModal() {
+      document.getElementById('partnersModal').classList.add('hidden');
+    }
+
+    function switchPartnerTab(tab) {
+      ['partners', 'channels', 'history'].forEach(t => {
+        document.getElementById(`tabContent${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        btn.className = t === tab
+          ? 'px-3.5 py-1.5 rounded-xl bg-amber-500 text-slate-950'
+          : 'px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300';
+      });
+    }
+
+    function renderPartnersCards() {
+      const container = document.getElementById('partnersListContainer');
+      container.innerHTML = allPartners.map(p => `
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-full flex items-center justify-center text-slate-950 font-black text-xs" style="background:${p.avatar_color || '#f59e0b'}">
+                S${p.id}
+              </span>
+              <div>
+                <div class="font-bold text-white text-sm">${p.name}</div>
+                <div class="text-[11px] text-slate-400">Login: <code>${p.username}</code></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-400 mb-1">Nome de Exibição do Sócio</label>
+            <input id="pName_${p.id}" type="text" value="${p.name}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+          </div>
+
+          <div>
+            <label class="block text-slate-400 mb-1">Cargo / Função na Sociedade</label>
+            <input id="pRole_${p.id}" type="text" value="${p.role || ''}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+          </div>
+
+          <div>
+            <label class="block text-slate-400 mb-1">📲 WhatsApp do Sócio (com DDI 55 ou 1)</label>
+            <input id="pWa_${p.id}" type="text" value="${p.whatsapp_phone || ''}" placeholder="Ex: +5511999999999" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+          </div>
+
+          <div>
+            <label class="block text-slate-400 mb-1">📧 E-mail do Sócio</label>
+            <input id="pEmail_${p.id}" type="email" value="${p.email || ''}" placeholder="socio@importadora.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+          </div>
+
+          <div>
+            <label class="block text-slate-400 mb-1">🔑 Nova Senha Individual (deixe em branco p/ manter)</label>
+            <input id="pPass_${p.id}" type="password" placeholder="Nova senha..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <div class="flex items-center gap-3">
+              <label class="inline-flex items-center gap-1 text-slate-300">
+                <input id="pNotifWa_${p.id}" type="checkbox" ${p.notify_whatsapp ? 'checked' : ''} class="rounded bg-slate-900 border-slate-700 text-emerald-500" />
+                <span>WhatsApp</span>
+              </label>
+              <label class="inline-flex items-center gap-1 text-slate-300">
+                <input id="pNotifEmail_${p.id}" type="checkbox" ${p.notify_email ? 'checked' : ''} class="rounded bg-slate-900 border-slate-700 text-amber-500" />
+                <span>E-mail</span>
+              </label>
+            </div>
+            <button onclick="savePartnerCard(${p.id}, '${p.avatar_color || '#f59e0b'}')" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold">
+              Salvar Sócio
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function savePartnerCard(pid, color) {
+      const payload = {
+        name: document.getElementById(`pName_${pid}`).value.trim(),
+        role: document.getElementById(`pRole_${pid}`).value.trim(),
+        whatsapp_phone: document.getElementById(`pWa_${pid}`).value.trim(),
+        email: document.getElementById(`pEmail_${pid}`).value.trim(),
+        notify_whatsapp: document.getElementById(`pNotifWa_${pid}`).checked ? 1 : 0,
+        notify_email: document.getElementById(`pNotifEmail_${pid}`).checked ? 1 : 0,
+        avatar_color: color,
+        new_password: document.getElementById(`pPass_${pid}`).value.trim() || null
+      };
+      const res = await fetch(`/api/partners/${pid}`, { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(payload) });
+      if (res.ok) {
+        const data = await res.json();
+        if (currentPartner && currentPartner.id === pid) {
+          currentPartner = data.partner;
+          updatePartnerHeaderUI();
+        }
+        showToast(`Dados de ${payload.name} atualizados com sucesso!`);
+        await loadDashboard();
+        renderPartnersCards();
+      }
+    }
+
+    function populateChannelSettingsForm() {
+      document.getElementById('cfgSmtpHost').value = systemSettings.smtp_host || 'smtp.gmail.com';
+      document.getElementById('cfgSmtpPort').value = systemSettings.smtp_port || 587;
+      document.getElementById('cfgSmtpFromName').value = systemSettings.smtp_from_name || 'Classic Car Hunter';
+      document.getElementById('cfgSmtpUser').value = systemSettings.smtp_user || '';
+      document.getElementById('cfgSmtpPassword').value = systemSettings.smtp_password || '';
+      document.getElementById('cfgWaProvider').value = systemSettings.whatsapp_provider || 'callmebot';
+      document.getElementById('cfgWaApiKey').value = systemSettings.whatsapp_api_key || '';
+      document.getElementById('cfgWaInstance').value = systemSettings.whatsapp_instance_id || '';
+      document.getElementById('cfgWaUrl').value = systemSettings.whatsapp_api_url || '';
+      document.getElementById('cfgUsdBrl').value = systemSettings.usd_brl_rate || 5.75;
+      document.getElementById('cfgTowPerMile').value = systemSettings.inland_tow_per_mile_usd || 1.65;
+      document.getElementById('cfgOceanFreight').value = systemSettings.ocean_freight_usd || 2800;
+      document.getElementById('cfgClassicTaxPct').value = systemSettings.br_classic_tax_pct || 95;
+    }
+
+    async function saveChannelSettings() {
+      const payload = {
+        smtp_host: document.getElementById('cfgSmtpHost').value.trim(),
+        smtp_port: parseInt(document.getElementById('cfgSmtpPort').value, 10) || 587,
+        smtp_from_name: document.getElementById('cfgSmtpFromName').value.trim(),
+        smtp_user: document.getElementById('cfgSmtpUser').value.trim(),
+        smtp_password: document.getElementById('cfgSmtpPassword').value,
+        whatsapp_provider: document.getElementById('cfgWaProvider').value,
+        whatsapp_api_key: document.getElementById('cfgWaApiKey').value.trim(),
+        whatsapp_instance_id: document.getElementById('cfgWaInstance').value.trim(),
+        whatsapp_api_url: document.getElementById('cfgWaUrl').value.trim(),
+        usd_brl_rate: parseFloat(document.getElementById('cfgUsdBrl').value) || 5.75,
+        inland_tow_per_mile_usd: parseFloat(document.getElementById('cfgTowPerMile').value) || 1.65,
+        ocean_freight_usd: parseInt(document.getElementById('cfgOceanFreight').value, 10) || 2800,
+        br_classic_tax_pct: parseFloat(document.getElementById('cfgClassicTaxPct').value) || 95.0
+      };
+      const res = await fetch('/api/settings', { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(payload) });
+      if (res.ok) {
+        showToast('Configurações de canais e calculadora salvas!');
+        await loadDashboard();
+      }
+    }
+
+    async function sendTestAlert() {
+      await saveChannelSettings();
+      closePartnersModal();
+      openSendAlertModal(true);
+    }
+
+    async function loadNotificationsHistory() {
+      const res = await fetch('/api/notifications?limit=20', { headers: apiHeaders() });
+      const data = await res.json();
+      const list = data.notifications || [];
+      const box = document.getElementById('notificationsHistoryList');
+      if (!list.length) {
+        box.innerHTML = `<div class="text-slate-500 p-4 text-center">Nenhum disparo registrado ainda.</div>`;
+        return;
+      }
+      box.innerHTML = list.map(n => `
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div class="font-bold text-white">${n.channel === 'whatsapp' ? '📲 WhatsApp' : '📧 E-mail'} → ${n.partner_name} (${n.recipient})</div>
+            <div class="text-[11px] text-slate-400">${n.subject} • ${n.items_count} veículo(s) • ${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+            <div class="text-[10px] text-amber-400 mt-0.5">Status: ${n.status.toUpperCase()} — ${n.error_message || ''}</div>
+          </div>
+          ${n.whatsapp_link ? `<a href="${n.whatsapp_link}" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">Abrir no WhatsApp ↗</a>` : ''}
+        </div>
+      `).join('');
+    }
+
+    // =====================================================================
+    // MODAL DE DISPARO MANUAL DE RELATÓRIO WHATSAPP / E-MAIL
+    // =====================================================================
+    function openSendAlertModal(isTest = false) {
+      const activeWl = allWatchlists.find(w => w.id === activeWatchlistId) || allWatchlists[0] || {};
+      const sel = document.getElementById('manualNotifyPartnerSelect');
+      sel.innerHTML = `
+        <option value="">🎯 Sócio Responsável pela Busca (${activeWl.owner_name || 'Sócio 1'})</option>
+        ${allPartners.map(p => `<option value="${p.id}">${p.name} (${p.whatsapp_phone || p.email || 'Sem contato preenchido'})</option>`).join('')}
+      `;
+      document.getElementById('alertDispatchResultBox').classList.add('hidden');
+      document.getElementById('sendAlertModal').classList.remove('hidden');
+      if (isTest) {
+        executeManualSendAlert(true);
+      }
+    }
+
+    function closeSendAlertModal() {
+      document.getElementById('sendAlertModal').classList.add('hidden');
+    }
+
+    async function executeManualSendAlert(isTest = false) {
+      const pidVal = document.getElementById('manualNotifyPartnerSelect').value;
+      const scope = document.getElementById('manualNotifyScope').value;
+      const channels = [];
+      if (document.getElementById('chkSendWa').checked) channels.push('whatsapp');
+      if (document.getElementById('chkSendEmail').checked) channels.push('email');
+
+      const res = await fetch('/api/notify/send', {
+        method: 'POST',
+        headers: apiHeaders(),
+        body: JSON.stringify({
+          watchlist_id: activeWatchlistId,
+          partner_id: pidVal ? parseInt(pidVal, 10) : null,
+          channels,
+          only_new_interesting: scope === 'new_interesting',
+          is_test: isTest
+        })
+      });
+      const data = await res.json();
+      const results = data.results || [];
+      const waRes = results.find(r => r.channel === 'whatsapp') || results[0];
+      if (waRes) {
+        document.getElementById('alertDispatchResultBox').classList.remove('hidden');
+        const statusLines = results.map(r => `${r.channel.toUpperCase()} (${r.partner_name}): ${r.detail}`).join(' | ');
+        document.getElementById('alertDispatchStatusText').textContent = statusLines;
+        document.getElementById('alertPreviewTextarea').value = waRes.message_preview || '';
+        const waBtn = document.getElementById('directWaLinkBtn');
+        if (waRes.whatsapp_link) {
+          waBtn.href = waRes.whatsapp_link;
+          waBtn.classList.remove('hidden');
+        }
+      }
+      showToast('Relatório gerado e registrado com sucesso!');
+    }
+
+    function copyPreviewText() {
+      const txt = document.getElementById('alertPreviewTextarea').value;
+      navigator.clipboard.writeText(txt);
+      showToast('Relatório copiado para a área de transferência!');
+    }
+
+    // =====================================================================
+    // SIMULADOR DE IMPORTAÇÃO EUA -> BRASIL
+    // =====================================================================
+    function openImportCalcModal(idx) {
+      const it = currentListings[idx];
+      if (!it) return;
+      activeCalcListing = it;
+      document.getElementById('calcModalCarTitle').textContent = it.title;
+      document.getElementById('calcPriceUsd').value = it.price_usd || 25000;
+      document.getElementById('calcDistMiles').value = it.distance_miles != null ? Math.round(it.distance_miles) : 450;
+      document.getElementById('calcRateBrl').value = systemSettings.usd_brl_rate || 5.75;
+      recalcModalImport(false);
+      document.getElementById('importCalcModal').classList.remove('hidden');
+    }
+
+    function closeImportCalcModal() {
+      document.getElementById('importCalcModal').classList.add('hidden');
+    }
+
+    async function recalcModalImport(manualTow = false) {
+      const priceUsd = parseInt(document.getElementById('calcPriceUsd').value, 10) || 0;
+      const distMiles = parseFloat(document.getElementById('calcDistMiles').value) || 0;
+      const rateBrl = parseFloat(document.getElementById('calcRateBrl').value) || 5.75;
+      const towInput = document.getElementById('calcInlandTowUsd');
+      const payload = {
+        price_usd: priceUsd,
+        distance_miles: distMiles,
+        usd_brl_rate: rateBrl,
+        inland_tow_usd: manualTow ? (parseInt(towInput.value, 10) || 350) : null
+      };
+
+      const res = await fetch('/api/import-calc', {
+        method: 'POST',
+        headers: apiHeaders(),
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      const est = data.estimate;
+      if (!est) return;
+      if (!manualTow) {
+        towInput.value = est.inland_tow_usd;
+      }
+
+      const fmtBrl = v => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+      const fmtUsd = v => '$' + Math.round(v).toLocaleString('en-US') + ' USD';
+
+      document.getElementById('calcBreakdownBox').innerHTML = `
+        <div class="flex justify-between text-slate-300">
+          <span>1. Valor do Veículo nos EUA (FOB):</span>
+          <span class="font-bold text-white">${fmtUsd(est.fob_usd)} (${fmtBrl(est.fob_brl)})</span>
+        </div>
+        <div class="flex justify-between text-slate-300">
+          <span>2. Guincho Interno até a Flórida (${Math.round(distMiles)} mi):</span>
+          <span class="font-semibold">${fmtUsd(est.inland_tow_usd)}</span>
+        </div>
+        <div class="flex justify-between text-slate-300">
+          <span>3. Frete Marítimo Flórida → Brasil + Export Broker:</span>
+          <span class="font-semibold">${fmtUsd(est.ocean_freight_usd + est.us_export_broker_usd)}</span>
+        </div>
+        <div class="flex justify-between text-slate-300 pt-1 border-t border-slate-800">
+          <span>4. Impostos de Importação Antigo (&gt;30 anos ~${est.br_tax_pct}%):</span>
+          <span class="font-semibold text-amber-300">${fmtBrl(est.taxes_brl)}</span>
+        </div>
+        <div class="flex justify-between text-slate-300">
+          <span>5. Despachante Aduaneiro + Taxas Portuárias BR:</span>
+          <span class="font-semibold">${fmtBrl(est.despachante_brl)}</span>
+        </div>
+        <div class="flex justify-between items-center pt-2.5 border-t border-slate-700 text-sm">
+          <span class="font-extrabold text-amber-400">CUSTO TOTAL ESTIMADO NO BRASIL:</span>
+          <span class="text-lg font-black text-emerald-400">${est.total_landed_display}</span>
+        </div>
+      `;
+      activeCalcListing._lastEst = est;
+    }
+
+    function shareQuoteOnWhatsApp() {
+      if (!activeCalcListing || !activeCalcListing._lastEst) return;
+      const it = activeCalcListing;
+      const est = it._lastEst;
+      const lines = [
+        `🏁 *SIMULAÇÃO DE IMPORTAÇÃO SOB DEMANDA*`,
+        `🚗 *Veículo:* ${it.title}`,
+        `📍 *Localização EUA:* ${it.location || 'EUA'}`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        `💵 *Valor nos EUA:* $${est.fob_usd.toLocaleString('en-US')} USD`,
+        `🚛 *Guincho até a Flórida:* $${est.inland_tow_usd.toLocaleString('en-US')} USD`,
+        `🚢 *Frete Marítimo + Exportação:* $${(est.ocean_freight_usd + est.us_export_broker_usd).toLocaleString('en-US')} USD`,
+        `🇧🇷 *Impostos + Desembaraço BR:* R$ ${(est.taxes_brl + est.despachante_brl).toLocaleString('pt-BR')}`,
+        `✅ *Total Estimado Nacionalizado:* *${est.total_landed_display}* (Câmbio R$ ${est.usd_brl_rate})`,
+        `🔗 *Anúncio:* ${it.url}`
+      ];
+      window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await checkAuthOnLoad();
+      await loadDashboard();
+    });
+  </script>
+</body>
+</html>
