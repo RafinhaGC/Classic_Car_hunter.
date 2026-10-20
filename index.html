@@ -493,6 +493,12 @@
         </p>
         <div id="partnersListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         </div>
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+          <span id="partnerSaveStatusMsg" class="text-emerald-400 font-semibold text-xs"></span>
+          <button type="button" onclick="saveAllPartnersAndSettings(this)" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow transition">
+            💾 Salvar Contatos dos Sócios
+          </button>
+        </div>
       </div>
 
       <!-- ABA 2: INTEGRAÇÃO WHATSAPP & E-MAIL -->
@@ -816,13 +822,61 @@
     // =====================================================================
     async function loadDashboard() {
       const url = activeWatchlistId ? `/api/dashboard?watchlist_id=${activeWatchlistId}` : '/api/dashboard';
-      const res = await fetch(url, { headers: apiHeaders() });
+      const res = await fetch(url, { headers: apiHeaders(), cache: 'no-store' });
       const data = await res.json();
 
       allPartners = data.partners || [];
       allWatchlists = data.watchlists || [];
       activeWatchlistId = data.active_watchlist_id;
       systemSettings = data.settings || {};
+
+      // Sincroniza backup local de contatos/configurações caso o servidor em nuvem tenha reiniciado
+      try {
+        const localPartnersRaw = localStorage.getItem('cch_partners_backup');
+        if (localPartnersRaw) {
+          const localPartners = JSON.parse(localPartnersRaw);
+          for (const p of allPartners) {
+            const b = localPartners[p.id];
+            if (b) {
+              let needsSync = false;
+              if (!p.whatsapp_phone && b.whatsapp_phone) { p.whatsapp_phone = b.whatsapp_phone; needsSync = true; }
+              if (!p.email && b.email) { p.email = b.email; needsSync = true; }
+              if (b.name && p.name !== b.name && (p.name.startsWith('Sócio') || !p.name)) { p.name = b.name; needsSync = true; }
+              if (needsSync) {
+                fetch(`/api/partners/${p.id}`, {
+                  method: 'PUT',
+                  headers: apiHeaders(),
+                  body: JSON.stringify({
+                    name: p.name,
+                    role: p.role || b.role || '',
+                    whatsapp_phone: p.whatsapp_phone || '',
+                    email: p.email || '',
+                    notify_whatsapp: p.notify_whatsapp ?? 1,
+                    notify_email: p.notify_email ?? 1,
+                    avatar_color: p.avatar_color || '#f59e0b'
+                  })
+                }).catch(() => {});
+              }
+            }
+          }
+        }
+        const localSettingsRaw = localStorage.getItem('cch_settings_backup');
+        if (localSettingsRaw) {
+          const localSettings = JSON.parse(localSettingsRaw);
+          let syncSettings = false;
+          for (const k of ['smtp_user', 'smtp_password', 'whatsapp_api_key', 'whatsapp_instance_id', 'whatsapp_api_url']) {
+            if (!systemSettings[k] && localSettings[k]) {
+              systemSettings[k] = localSettings[k];
+              syncSettings = true;
+            }
+          }
+          if (syncSettings) {
+            fetch('/api/settings', { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(systemSettings) }).catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.warn('Erro ao sincronizar backup local:', e);
+      }
 
       // Render Watchlist Select
       const sel = document.getElementById('watchlistSelect');
@@ -1357,17 +1411,37 @@
                 <span>E-mail</span>
               </label>
             </div>
-            <button onclick="savePartnerCard(${p.id}, '${p.avatar_color || '#f59e0b'}')" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold">
-              Salvar Sócio
+            <button type="button" onclick="savePartnerCard(${p.id}, '${p.avatar_color || '#f59e0b'}', this)" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition">
+              💾 Salvar Sócio
             </button>
           </div>
         </div>
       `).join('');
     }
 
-    async function savePartnerCard(pid, color) {
+    function persistPartnersLocalBackup() {
+      try {
+        const map = {};
+        for (const p of allPartners) {
+          map[p.id] = {
+            name: p.name,
+            role: p.role,
+            whatsapp_phone: p.whatsapp_phone,
+            email: p.email,
+            notify_whatsapp: p.notify_whatsapp,
+            notify_email: p.notify_email,
+            avatar_color: p.avatar_color
+          };
+        }
+        localStorage.setItem('cch_partners_backup', JSON.stringify(map));
+      } catch (e) {}
+    }
+
+    async function savePartnerCard(pid, color, btnEl = null) {
+      const nameEl = document.getElementById(`pName_${pid}`);
+      if (!nameEl) return false;
       const payload = {
-        name: document.getElementById(`pName_${pid}`).value.trim(),
+        name: nameEl.value.trim(),
         role: document.getElementById(`pRole_${pid}`).value.trim(),
         whatsapp_phone: document.getElementById(`pWa_${pid}`).value.trim(),
         email: document.getElementById(`pEmail_${pid}`).value.trim(),
@@ -1376,17 +1450,63 @@
         avatar_color: color,
         new_password: document.getElementById(`pPass_${pid}`).value.trim() || null
       };
-      const res = await fetch(`/api/partners/${pid}`, { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(payload) });
-      if (res.ok) {
-        const data = await res.json();
-        if (currentPartner && currentPartner.id === pid) {
-          currentPartner = data.partner;
-          updatePartnerHeaderUI();
-        }
-        showToast(`Dados de ${payload.name} atualizados com sucesso!`);
-        await loadDashboard();
-        renderPartnersCards();
+
+      // Atualiza imediatamente em memória e no backup local do navegador
+      const idx = allPartners.findIndex(p => p.id === pid);
+      if (idx !== -1) {
+        allPartners[idx] = { ...allPartners[idx], ...payload };
       }
+      persistPartnersLocalBackup();
+
+      if (btnEl) {
+        btnEl.textContent = '⏳ Salvando...';
+      }
+
+      try {
+        const res = await fetch(`/api/partners/${pid}`, {
+          method: 'PUT',
+          headers: apiHeaders(),
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.partner && idx !== -1) {
+            allPartners[idx] = data.partner;
+            persistPartnersLocalBackup();
+          }
+          if (currentPartner && currentPartner.id === pid) {
+            currentPartner = data.partner || allPartners[idx];
+            updatePartnerHeaderUI();
+          }
+        }
+      } catch (e) {
+        console.warn('Salvo localmente (servidor offline/reiniciando):', e);
+      }
+
+      if (btnEl) {
+        btnEl.textContent = '✅ Salvo!';
+        setTimeout(() => { btnEl.textContent = '💾 Salvar Sócio'; }, 2500);
+      }
+      const statusEl = document.getElementById('partnerSaveStatusMsg');
+      if (statusEl) {
+        statusEl.textContent = `✅ Contato de ${payload.name} salvo (${payload.whatsapp_phone || 'sem WhatsApp'} / ${payload.email || 'sem e-mail'})`;
+      }
+      showToast(`✅ Dados de contato de ${payload.name} salvos com sucesso!`);
+      await loadDashboard();
+      return true;
+    }
+
+    async function saveAllPartnersAndSettings(btnEl = null) {
+      if (btnEl) btnEl.textContent = '⏳ Salvando...';
+      for (const p of allPartners) {
+        await savePartnerCard(p.id, p.avatar_color || '#f59e0b');
+      }
+      await saveChannelSettings(true);
+      if (btnEl) {
+        btnEl.textContent = '✅ Contatos Salvos!';
+        setTimeout(() => { btnEl.textContent = '💾 Salvar Contatos dos Sócios'; }, 2500);
+      }
+      showToast('✅ Contatos de todos os sócios e configurações salvos!');
     }
 
     function populateChannelSettingsForm() {
@@ -1405,7 +1525,27 @@
       document.getElementById('cfgClassicTaxPct').value = systemSettings.br_classic_tax_pct || 95;
     }
 
-    async function saveChannelSettings() {
+    async function saveChannelSettings(silent = false) {
+      // Salva também os cards de sócios se já estiverem preenchidos na Aba 1
+      for (const p of allPartners) {
+        const nameEl = document.getElementById(`pName_${p.id}`);
+        if (nameEl) {
+          const pPayload = {
+            name: nameEl.value.trim(),
+            role: document.getElementById(`pRole_${p.id}`).value.trim(),
+            whatsapp_phone: document.getElementById(`pWa_${p.id}`).value.trim(),
+            email: document.getElementById(`pEmail_${p.id}`).value.trim(),
+            notify_whatsapp: document.getElementById(`pNotifWa_${p.id}`).checked ? 1 : 0,
+            notify_email: document.getElementById(`pNotifEmail_${p.id}`).checked ? 1 : 0,
+            avatar_color: p.avatar_color || '#f59e0b',
+            new_password: document.getElementById(`pPass_${p.id}`).value.trim() || null
+          };
+          Object.assign(p, pPayload);
+          await fetch(`/api/partners/${p.id}`, { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(pPayload) }).catch(() => {});
+        }
+      }
+      persistPartnersLocalBackup();
+
       const payload = {
         smtp_host: document.getElementById('cfgSmtpHost').value.trim(),
         smtp_port: parseInt(document.getElementById('cfgSmtpPort').value, 10) || 587,
@@ -1421,9 +1561,14 @@
         ocean_freight_usd: parseInt(document.getElementById('cfgOceanFreight').value, 10) || 2800,
         br_classic_tax_pct: parseFloat(document.getElementById('cfgClassicTaxPct').value) || 95.0
       };
+      systemSettings = { ...systemSettings, ...payload };
+      try {
+        localStorage.setItem('cch_settings_backup', JSON.stringify(systemSettings));
+      } catch (e) {}
+
       const res = await fetch('/api/settings', { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(payload) });
-      if (res.ok) {
-        showToast('Configurações de canais e calculadora salvas!');
+      if (res.ok && !silent) {
+        showToast('✅ Contatos dos sócios, canais e calculadora salvos!');
         await loadDashboard();
       }
     }

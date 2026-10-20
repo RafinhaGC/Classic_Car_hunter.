@@ -34,7 +34,7 @@ _scan_lock = asyncio.Lock()
 
 
 def refresh_existing_scores() -> None:
-    """Ensure all existing listings in SQLite have up-to-date scores on startup."""
+    """Ensure all existing listings in SQLite match the strict target filter and have up-to-date scores."""
     conn = get_conn()
     try:
         wls = {r["id"]: dict(r) for r in conn.execute("SELECT * FROM watchlists").fetchall()}
@@ -46,6 +46,16 @@ def refresh_existing_scores() -> None:
                 if not wl:
                     continue
                 scored = score_and_classify_listing(item, wl)
+                y_max = int(wl.get("year_max") or 1960)
+                max_classic_year = max(1972, y_max + 5)
+                yr = scored.get("year")
+                tier = scored.get("match_tier")
+
+                # Remove generic sedans/convertibles that aren't the target model/variant, and remove modern 1980s-2020s cars
+                if tier not in ("exact_target", "coachbuilt") or (yr is not None and int(yr) > max_classic_year):
+                    conn.execute("DELETE FROM listings WHERE id = ?", (item["id"],))
+                    continue
+
                 conn.execute(
                     """
                     UPDATE listings SET
@@ -229,10 +239,28 @@ def _is_watchlist_due(wl: dict[str, Any]) -> bool:
     return elapsed_min >= interval_min
 
 
+def _keepalive_ping() -> None:
+    """Ping external URL on Render so the free tier instance stays awake for scheduled scans."""
+    ext_url = (os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("PUBLIC_APP_URL") or "").strip().rstrip("/")
+    if not ext_url:
+        return
+    try:
+        import urllib.request
+        req = urllib.request.Request(f"{ext_url}/api/health", headers={"User-Agent": "ClassicCarHunter-KeepAlive/2.0"})
+        with urllib.request.urlopen(req, timeout=10) as _:
+            pass
+    except Exception:
+        pass
+
+
 async def periodic_scheduler_loop() -> None:
     """Background loop that checks every 60 seconds if any active watchlist is due for a scheduled scan."""
+    tick = 0
     while True:
         await asyncio.sleep(60)
+        tick += 1
+        if tick % 10 == 0:
+            await asyncio.to_thread(_keepalive_ping)
         if _scan_lock.locked():
             continue
         try:
@@ -270,6 +298,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def disable_api_cache(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+    return response
+
+
+@app.get("/api/health")
+def health_check() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 # =====================================================================
