@@ -738,11 +738,271 @@ def scrape_ebay(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
     return list(results.values())
 
 
+# =====================================================================
+# 5. BRING A TRAILER (BaT), CLASSIC.COM, CARS.COM, CARGURUS, STREETSIDE
+# =====================================================================
+def _scrape_generic_portal(
+    watchlist: dict[str, Any],
+    source_key: str,
+    seller_label: str,
+    search_urls: list[str],
+    base_domain: str,
+    link_pattern: str,
+) -> list[dict[str, Any]]:
+    """Generic multi-strategy scraper (JSON-LD + NextData + HTML cards) for major US auto portals."""
+    make = (watchlist.get("make") or "").strip()
+    primary_kw = (watchlist.get("model_primary") or "").strip()
+    if not make:
+        return []
+
+    results: dict[str, dict[str, Any]] = {}
+    session = _get_chrome_session()
+
+    for url in search_urls:
+        try:
+            resp = session.get(url, timeout=12)
+            if resp.status_code != 200:
+                continue
+            html = resp.text
+            soup = BeautifulSoup(html, "lxml")
+
+            # Strategy 1: JSON-LD Vehicle / Product / Offer items
+            for script in soup.select("script[type='application/ld+json']"):
+                raw = (script.string or "").strip()
+                if not raw:
+                    continue
+                try:
+                    data = json.loads(raw)
+                except Exception:
+                    continue
+
+                candidates = []
+                if isinstance(data, list):
+                    candidates.extend(data)
+                elif isinstance(data, dict):
+                    if "itemListElement" in data and isinstance(data["itemListElement"], list):
+                        for el in data["itemListElement"]:
+                            if isinstance(el, dict):
+                                candidates.append(el.get("item") or el)
+                    else:
+                        candidates.append(data)
+
+                for obj in candidates:
+                    if not isinstance(obj, dict):
+                        continue
+                    title = (obj.get("name") or obj.get("headline") or "").strip()
+                    if not title or make.lower() not in title.lower():
+                        continue
+                    item_url = (obj.get("url") or "").strip()
+                    if item_url and item_url.startswith("/"):
+                        item_url = f"{base_domain}{item_url}"
+                    if not item_url:
+                        continue
+                    ext_id = re.sub(r"[^a-zA-Z0-9_-]", "", item_url.split("/")[-1] or item_url[-24:])[:40]
+                    if not ext_id or ext_id in results:
+                        continue
+
+                    offers = obj.get("offers") if isinstance(obj.get("offers"), dict) else {}
+                    raw_price = offers.get("price") or obj.get("price")
+                    price_usd, price_display = parse_price_to_usd(str(raw_price) if raw_price else None)
+                    if is_likely_part_or_memorabilia(title, price_usd):
+                        continue
+
+                    img = obj.get("image")
+                    if isinstance(img, list) and img:
+                        image_url = str(img[0])
+                    elif isinstance(img, dict):
+                        image_url = str(img.get("url") or "")
+                    elif isinstance(img, str):
+                        image_url = img
+                    else:
+                        image_url = ""
+
+                    year = extract_year_from_text(title)
+                    item = {
+                        "id": _make_listing_id(watchlist["id"], source_key, ext_id),
+                        "watchlist_id": watchlist["id"],
+                        "source": source_key,
+                        "external_id": ext_id,
+                        "title": title,
+                        "subtitle": seller_label,
+                        "year": year,
+                        "make": make,
+                        "model": primary_kw or title,
+                        "price_usd": price_usd,
+                        "price_display": price_display,
+                        "location": f"Estados Unidos ({seller_label})",
+                        "city": "",
+                        "state": "",
+                        "zip_code": "",
+                        "url": item_url,
+                        "image_url": image_url,
+                        "description": (obj.get("description") or title)[:300],
+                        "seller_info": seller_label,
+                    }
+                    results[ext_id] = score_and_classify_listing(item, watchlist)
+
+            # Strategy 2: HTML Anchor/Card scanning
+            for a_el in soup.select("a[href]"):
+                href = (a_el.get("href") or "").strip()
+                if not href or not re.search(link_pattern, href, re.I):
+                    continue
+                full_url = f"{base_domain}{href}" if href.startswith("/") else href
+                card = a_el.find_parent(["article", "div", "li"]) or a_el
+                card_text = card.get_text(" ", strip=True)
+                title_el = card.select_one("h2, h3, h4, .title, .listing-title, [class*='title']")
+                title = title_el.get_text(" ", strip=True) if title_el else a_el.get_text(" ", strip=True)
+                if not title or len(title) < 8 or make.lower() not in title.lower():
+                    continue
+
+                ext_id = re.sub(r"[^a-zA-Z0-9_-]", "", full_url.rstrip("/").split("/")[-1])[:40]
+                if not ext_id or ext_id in results:
+                    continue
+
+                m_price = re.search(r"\$\s?(\d{1,3}(?:,\d{3})+)", card_text)
+                price_usd, price_display = parse_price_to_usd(m_price.group(0) if m_price else None)
+                if is_likely_part_or_memorabilia(title, price_usd):
+                    continue
+
+                img_el = card.select_one("img")
+                image_url = ""
+                if img_el:
+                    image_url = img_el.get("src") or img_el.get("data-src") or ""
+
+                m_loc = re.search(r"([A-Z][a-zA-Z\s\.]+,\s*[A-Z]{2})\b", card_text)
+                loc_str = m_loc.group(1).strip() if m_loc else f"Estados Unidos ({seller_label})"
+                city, state, zc = parse_city_state(loc_str)
+
+                year = extract_year_from_text(title)
+                item = {
+                    "id": _make_listing_id(watchlist["id"], source_key, ext_id),
+                    "watchlist_id": watchlist["id"],
+                    "source": source_key,
+                    "external_id": ext_id,
+                    "title": title[:140],
+                    "subtitle": seller_label,
+                    "year": year,
+                    "make": make,
+                    "model": primary_kw or title[:60],
+                    "price_usd": price_usd,
+                    "price_display": price_display,
+                    "location": loc_str,
+                    "city": city,
+                    "state": state,
+                    "zip_code": zc,
+                    "url": full_url,
+                    "image_url": image_url,
+                    "description": card_text[:280],
+                    "seller_info": seller_label,
+                }
+                results[ext_id] = score_and_classify_listing(item, watchlist)
+        except Exception as exc:
+            print(f"[{source_key.upper()}] Error: {exc}")
+
+    return list(results.values())
+
+
+def scrape_bringatrailer(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
+    make = (watchlist.get("make") or "").strip()
+    model = (watchlist.get("model_primary") or "").strip()
+    q = quote_plus(f"{make} {model}".strip())
+    return _scrape_generic_portal(
+        watchlist,
+        source_key="bringatrailer",
+        seller_label="Bring a Trailer (BaT)",
+        search_urls=[f"https://bringatrailer.com/auctions/?search={q}"],
+        base_domain="https://bringatrailer.com",
+        link_pattern=r"bringatrailer\.com/listing/",
+    )
+
+
+def scrape_classiccom(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
+    make = (watchlist.get("make") or "").strip()
+    model = (watchlist.get("model_primary") or "").strip()
+    y_min = int(watchlist.get("year_min", 1960))
+    q = quote_plus(f"{y_min} {make} {model}".strip())
+    return _scrape_generic_portal(
+        watchlist,
+        source_key="classiccom",
+        seller_label="Classic.com Market",
+        search_urls=[f"https://www.classic.com/search?q={q}&ForSale=true"],
+        base_domain="https://www.classic.com",
+        link_pattern=r"/veh/",
+    )
+
+
+def scrape_carscom(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
+    make = (watchlist.get("make") or "").strip().lower()
+    model = (watchlist.get("model_primary") or "").strip().lower()
+    y_min = int(watchlist.get("year_min", 1960))
+    y_max = int(watchlist.get("year_max", 1970))
+    q = quote_plus(f"{make} {model}".strip())
+    return _scrape_generic_portal(
+        watchlist,
+        source_key="carscom",
+        seller_label="Cars.com USA",
+        search_urls=[
+            f"https://www.cars.com/shopping/results/?keyword={q}&year_min={y_min}&year_max={y_max}&maximum_distance=all"
+        ],
+        base_domain="https://www.cars.com",
+        link_pattern=r"/vehicledetail/",
+    )
+
+
+def scrape_cargurus(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
+    make = (watchlist.get("make") or "").strip()
+    model = (watchlist.get("model_primary") or "").strip()
+    y_min = int(watchlist.get("year_min", 1960))
+    q = quote_plus(f"{y_min} {make} {model}".strip())
+    return _scrape_generic_portal(
+        watchlist,
+        source_key="cargurus",
+        seller_label="CarGurus USA",
+        search_urls=[f"https://www.cargurus.com/Cars/inventorylisting/viewDetailsFilterViewInventoryListing.action?zip=33441&distance=50000&keyword={q}"],
+        base_domain="https://www.cargurus.com",
+        link_pattern=r"listing=\d+|/Cars/link/",
+    )
+
+
+def scrape_streetside(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
+    make = (watchlist.get("make") or "").strip()
+    model = (watchlist.get("model_primary") or "").strip()
+    q = quote_plus(f"{make} {model}".strip())
+    return _scrape_generic_portal(
+        watchlist,
+        source_key="streetside",
+        seller_label="Streetside Classics USA",
+        search_urls=[f"https://www.streetsideclassics.com/vehicles?q={q}"],
+        base_domain="https://www.streetsideclassics.com",
+        link_pattern=r"/vehicles/\d+",
+    )
+
+
+def scrape_carsandbids(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
+    make = (watchlist.get("make") or "").strip()
+    model = (watchlist.get("model_primary") or "").strip()
+    q = quote_plus(f"{make} {model}".strip())
+    return _scrape_generic_portal(
+        watchlist,
+        source_key="carsandbids",
+        seller_label="Cars & Bids",
+        search_urls=[f"https://carsandbids.com/search?q={q}"],
+        base_domain="https://carsandbids.com",
+        link_pattern=r"/auctions/",
+    )
+
+
+ALL_DEFAULT_SOURCES = "ebay,autotrader,classiccars,hemmings,bringatrailer,classiccom,carscom,cargurus,streetside,carsandbids"
+
+
 def run_watchlist_scan(watchlist: dict[str, Any]) -> dict[str, Any]:
-    """Run all enabled portal scrapers for a watchlist and return aggregated results."""
+    """Run all enabled US portal scrapers for a watchlist and return aggregated results."""
+    raw_sources = (watchlist.get("sources") or ALL_DEFAULT_SOURCES).strip()
+    if raw_sources == "ebay,autotrader,classiccars,hemmings":
+        raw_sources = ALL_DEFAULT_SOURCES
     enabled = [
         s.strip().lower()
-        for s in (watchlist.get("sources") or "ebay,autotrader,classiccars,hemmings").split(",")
+        for s in raw_sources.split(",")
         if s.strip()
     ]
 
@@ -751,6 +1011,12 @@ def run_watchlist_scan(watchlist: dict[str, Any]) -> dict[str, Any]:
         "autotrader": scrape_autotrader,
         "hemmings": scrape_hemmings,
         "ebay": scrape_ebay,
+        "bringatrailer": scrape_bringatrailer,
+        "classiccom": scrape_classiccom,
+        "carscom": scrape_carscom,
+        "cargurus": scrape_cargurus,
+        "streetside": scrape_streetside,
+        "carsandbids": scrape_carsandbids,
     }
 
     all_items: list[dict[str, Any]] = []

@@ -236,10 +236,8 @@ def init_db() -> None:
         _ensure_column(conn, "scan_logs", "interesting_new_listings", "INTEGER NOT NULL DEFAULT 0")
         _ensure_column(conn, "scan_logs", "notifications_sent", "INTEGER NOT NULL DEFAULT 0")
 
-        # Seed default partners (Rafael Campos & Marçal Borborema) if none exist
-        rafael_wa = os.environ.get("RAFAEL_WHATSAPP", "").strip()
-        rafael_email = os.environ.get("RAFAEL_EMAIL", "").strip()
-        marcal_wa = os.environ.get("MARCAL_WHATSAPP", "").strip()
+        # Seed default users (Rafael Campos & Marçal Borborema)
+        rafael_email = os.environ.get("RAFAEL_EMAIL", "").strip() or "rafael-reseach@urbanabrasil.com"
         marcal_email = os.environ.get("MARCAL_EMAIL", "").strip()
 
         p_count = conn.execute("SELECT COUNT(*) AS cnt FROM partners").fetchone()["cnt"]
@@ -248,30 +246,25 @@ def init_db() -> None:
             conn.execute(
                 """
                 INSERT INTO partners (username, name, role, password_hash, email, whatsapp_phone, notify_email, notify_whatsapp, avatar_color, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+                VALUES (?, ?, ?, ?, ?, '', 1, 0, ?, ?)
                 """,
-                ("rafael", "Rafael Campos", "Sócio • Compras & Importação", hash_password("123456"), rafael_email, rafael_wa, "#f59e0b", now),
+                ("rafael", "Rafael Campos", "Desenvolvedor & Pesquisa", hash_password("RafA2305"), rafael_email, "#f59e0b", now),
             )
             conn.execute(
                 """
                 INSERT INTO partners (username, name, role, password_hash, email, whatsapp_phone, notify_email, notify_whatsapp, avatar_color, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+                VALUES (?, ?, ?, ?, ?, '', 1, 0, ?, ?)
                 """,
-                ("marcal", "Marçal Borborema", "Sócio • Comercial & Importação", hash_password("123456"), marcal_email, marcal_wa, "#38bdf8", now),
+                ("marcal", "Marçal Borborema", "Diretor / Gestor", hash_password("123456"), marcal_email, "#38bdf8", now),
             )
         else:
             conn.execute(
-                "UPDATE partners SET username = 'rafael', name = 'Rafael Campos' WHERE id = 1 AND (username = 'socio1' OR name LIKE 'Sócio 1%')"
+                "UPDATE partners SET username = 'rafael', name = 'Rafael Campos', role = 'Desenvolvedor & Pesquisa', password_hash = ?, email = CASE WHEN email IS NULL OR email = '' THEN ? ELSE email END, whatsapp_phone = '', notify_whatsapp = 0 WHERE id = 1",
+                (hash_password("RafA2305"), rafael_email),
             )
             conn.execute(
-                "UPDATE partners SET username = 'marcal', name = 'Marçal Borborema' WHERE id = 2 AND (username = 'socio2' OR name LIKE 'Sócio 2%')"
+                "UPDATE partners SET username = 'marcal', name = 'Marçal Borborema', role = 'Diretor / Gestor', whatsapp_phone = '', notify_whatsapp = 0 WHERE id = 2"
             )
-            if rafael_wa:
-                conn.execute("UPDATE partners SET whatsapp_phone = ? WHERE id = 1 AND (whatsapp_phone IS NULL OR whatsapp_phone = '')", (rafael_wa,))
-            if rafael_email:
-                conn.execute("UPDATE partners SET email = ? WHERE id = 1 AND (email IS NULL OR email = '')", (rafael_email,))
-            if marcal_wa:
-                conn.execute("UPDATE partners SET whatsapp_phone = ? WHERE id = 2 AND (whatsapp_phone IS NULL OR whatsapp_phone = '')", (marcal_wa,))
             if marcal_email:
                 conn.execute("UPDATE partners SET email = ? WHERE id = 2 AND (email IS NULL OR email = '')", (marcal_email,))
 
@@ -281,56 +274,6 @@ def init_db() -> None:
             conn.execute(
                 "INSERT OR IGNORE INTO system_settings (key, value_json, updated_at) VALUES (?, ?, ?)",
                 (k, json.dumps(v), now),
-            )
-
-        # Seed default watchlist for 1960 Cadillac Eureka if none exists and never seeded before
-        cur = conn.execute("SELECT COUNT(*) AS cnt FROM watchlists")
-        seeded_row = conn.execute("SELECT value_json FROM system_settings WHERE key = 'initial_watchlist_seeded'").fetchone()
-        if cur.fetchone()["cnt"] == 0 and not seeded_row:
-            conn.execute(
-                "INSERT OR IGNORE INTO system_settings (key, value_json, updated_at) VALUES ('initial_watchlist_seeded', 'true', ?)",
-                (now,),
-            )
-            conn.execute(
-                """
-                INSERT INTO watchlists (
-                    name, make, model_primary, related_keywords,
-                    year_min, year_max, coachbuilt_year_min, coachbuilt_year_max,
-                    price_min, price_max, target_city, target_state, target_zip,
-                    target_lat, target_lon, sources, interval_minutes, is_active, created_at,
-                    owner_partner_id, notify_target, client_name, schedule_mode, runs_per_day,
-                    fixed_hours, notify_only_new_interesting, min_alert_score
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    "Cadillac Eureka 1960 ($20k–$40k | Deerfield Beach, FL)",
-                    "Cadillac",
-                    "Eureka",
-                    "eureka, hearse, ambulance, commercial chassis, flower car, miller meteor, miller-meteor, superior, funeral coach, 3-way, landau",
-                    1960,
-                    1960,
-                    1938,
-                    1970,
-                    20000,
-                    40000,
-                    "Deerfield Beach",
-                    "FL",
-                    "33441",
-                    26.3184,
-                    -80.0998,
-                    "ebay,autotrader,classiccars,hemmings",
-                    240,
-                    1,
-                    now,
-                    1,
-                    "owner",
-                    "Encomenda Especial #01",
-                    "times_per_day",
-                    3,
-                    "08:00,14:00,20:00",
-                    1,
-                    55,
-                ),
             )
     conn.close()
 

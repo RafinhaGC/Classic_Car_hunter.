@@ -13,6 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# If any updated files were uploaded directly to the repo root on GitHub, sync them into app/ automatically
+RUN for f in main.py database.py notifications.py scrapers.py; do [ -f "./$f" ] && cp -f "./$f" "./app/$f" || true; done \
+    && [ -f "./index.html" ] && cp -f "./index.html" "./app/static/index.html" || true
+
 ENV PORT=8080
 EXPOSE 8080
 
