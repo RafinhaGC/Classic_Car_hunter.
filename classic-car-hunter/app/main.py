@@ -34,7 +34,7 @@ _scan_lock = asyncio.Lock()
 
 
 def refresh_existing_scores() -> None:
-    """Ensure all existing listings in SQLite have up-to-date scores on startup."""
+    """Ensure all existing listings in SQLite match the strict target filter and have up-to-date scores."""
     conn = get_conn()
     try:
         wls = {r["id"]: dict(r) for r in conn.execute("SELECT * FROM watchlists").fetchall()}
@@ -46,6 +46,16 @@ def refresh_existing_scores() -> None:
                 if not wl:
                     continue
                 scored = score_and_classify_listing(item, wl)
+                y_max = int(wl.get("year_max") or 1960)
+                max_classic_year = max(1972, y_max + 5)
+                yr = scored.get("year")
+                tier = scored.get("match_tier")
+
+                # Remove generic sedans/convertibles that aren't the target model/variant, and remove modern 1980s-2020s cars
+                if tier not in ("exact_target", "coachbuilt") or (yr is not None and int(yr) > max_classic_year):
+                    conn.execute("DELETE FROM listings WHERE id = ?", (item["id"],))
+                    continue
+
                 conn.execute(
                     """
                     UPDATE listings SET
@@ -223,16 +233,39 @@ def _is_watchlist_due(wl: dict[str, Any]) -> bool:
                 continue
         return False
 
+    if mode == "times_per_week":
+        runs_per_week = max(1, min(14, int(wl.get("runs_per_day") or 2)))
+        interval_min = max(120.0, (7.0 * 1440.0) / runs_per_week)
+        return elapsed_min >= interval_min
+
     # Default: times_per_day (e.g. 2x, 3x, 4x per day)
     runs_per_day = max(1, min(24, int(wl.get("runs_per_day") or 3)))
     interval_min = max(30.0, 1440.0 / runs_per_day)
     return elapsed_min >= interval_min
 
 
+def _keepalive_ping() -> None:
+    """Ping external URL on Render so the free tier instance stays awake for scheduled scans."""
+    ext_url = (os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("PUBLIC_APP_URL") or "").strip().rstrip("/")
+    if not ext_url:
+        return
+    try:
+        import urllib.request
+        req = urllib.request.Request(f"{ext_url}/api/health", headers={"User-Agent": "ClassicCarHunter-KeepAlive/2.0"})
+        with urllib.request.urlopen(req, timeout=10) as _:
+            pass
+    except Exception:
+        pass
+
+
 async def periodic_scheduler_loop() -> None:
     """Background loop that checks every 60 seconds if any active watchlist is due for a scheduled scan."""
+    tick = 0
     while True:
         await asyncio.sleep(60)
+        tick += 1
+        if tick % 10 == 0:
+            await asyncio.to_thread(_keepalive_ping)
         if _scan_lock.locked():
             continue
         try:
@@ -258,9 +291,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Classic Car Hunter • Importação Sob Demanda",
-    description="Plataforma Multi-Sócio de Busca e Importação de Carros Clássicos Raros",
-    version="2.0.0",
+    title="Classic Car Hunter • Pesquisa & Importação de Veículos",
+    description="Plataforma de Monitoramento de Portais de Venda de Autos dos EUA",
+    version="3.0.0",
     lifespan=lifespan,
 )
 
@@ -270,6 +303,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def disable_api_cache(request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
+@app.get("/api/health")
+def health_check() -> dict[str, str]:
+    return {"status": "ok", "version": "3.0-rafael-10portals"}
 
 
 # =====================================================================
@@ -282,11 +329,11 @@ class LoginModel(BaseModel):
 
 class PartnerUpdateModel(BaseModel):
     name: str
-    role: str = "Sócio"
+    role: str = "Usuário"
     email: str = ""
     whatsapp_phone: str = ""
     notify_email: int = 1
-    notify_whatsapp: int = 1
+    notify_whatsapp: int = 0
     avatar_color: str = "#f59e0b"
     new_password: Optional[str] = None
 
@@ -294,7 +341,7 @@ class PartnerUpdateModel(BaseModel):
 class PartnerCreateModel(BaseModel):
     username: str
     name: str
-    role: str = "Sócio"
+    role: str = "Usuário"
     password: str
     email: str = ""
     whatsapp_phone: str = ""
@@ -303,17 +350,17 @@ class PartnerCreateModel(BaseModel):
 
 class WatchlistUpdateModel(BaseModel):
     name: str
-    make: str = "Cadillac"
-    model_primary: str = "Eureka"
-    related_keywords: str = "eureka, hearse, ambulance, commercial chassis, flower car, miller meteor, superior, funeral coach"
+    make: str = ""
+    model_primary: str = ""
+    related_keywords: str = ""
     year_min: int = 1960
-    year_max: int = 1960
-    price_min: int = 20000
-    price_max: int = 40000
+    year_max: int = 1970
+    price_min: int = 15000
+    price_max: int = 60000
     target_city: str = "Deerfield Beach"
     target_state: str = "FL"
     target_zip: str = "33441"
-    sources: str = "ebay,autotrader,classiccars,hemmings"
+    sources: str = "ebay,autotrader,classiccars,hemmings,bringatrailer,classiccom,carscom,cargurus,streetside,carsandbids"
     interval_minutes: int = 240
     is_active: int = 1
     owner_partner_id: int = 1
@@ -326,7 +373,7 @@ class WatchlistUpdateModel(BaseModel):
     notify_only_new_interesting: int = 1
     min_alert_score: int = 55
     auto_notify_email: int = 1
-    auto_notify_whatsapp: int = 1
+    auto_notify_whatsapp: int = 0
 
 
 class ListingPatchModel(BaseModel):
@@ -339,7 +386,7 @@ class ListingPatchModel(BaseModel):
 class ManualNotifyModel(BaseModel):
     watchlist_id: int
     partner_id: Optional[int] = None
-    channels: list[str] = ["whatsapp", "email"]
+    channels: list[str] = ["email"]
     only_new_interesting: bool = False
     is_test: bool = False
 
@@ -507,7 +554,7 @@ def api_put_settings(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 @app.get("/api/notifications")
-def api_get_notifications(watchlist_id: Optional[int] = None, limit: int = 25) -> dict[str, Any]:
+def api_get_notifications(watchlist_id: Optional[int] = None, limit: int = 30) -> dict[str, Any]:
     conn = get_conn()
     try:
         if watchlist_id is not None:
@@ -520,7 +567,14 @@ def api_get_notifications(watchlist_id: Optional[int] = None, limit: int = 25) -
                 "SELECT * FROM notification_logs ORDER BY id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
-        return {"notifications": [dict(r) for r in rows]}
+        scan_rows = conn.execute(
+            "SELECT * FROM scan_logs ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return {
+            "notifications": [dict(r) for r in rows],
+            "scan_logs": [dict(s) for s in scan_rows],
+        }
     finally:
         conn.close()
 
@@ -596,10 +650,25 @@ def api_import_calc(payload: ImportCalcRequest) -> dict[str, Any]:
 # =====================================================================
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
-    index_path = os.path.join(STATIC_DIR, "index.html")
-    if not os.path.exists(index_path):
+    candidates = [
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "index.html"),
+        os.path.join(os.path.dirname(__file__), "index.html"),
+        os.path.join(STATIC_DIR, "index.html"),
+    ]
+    best_path = None
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    content = f.read()
+                if "10 Portais EUA" in content:
+                    return HTMLResponse(content=content, headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"})
+                best_path = p
+            except Exception:
+                best_path = p
+    if not best_path:
         return HTMLResponse("<h1>Classic Car Hunter</h1><p>Static UI not found.</p>")
-    return FileResponse(index_path)
+    return FileResponse(best_path, headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"})
 
 
 @app.get("/api/dashboard")
@@ -616,12 +685,32 @@ def get_dashboard(watchlist_id: Optional[int] = None) -> dict[str, Any]:
         for r in conn.execute("SELECT * FROM watchlists ORDER BY id ASC").fetchall():
             wd = dict(r)
             owner = partners.get(wd.get("owner_partner_id") or 1)
-            wd["owner_name"] = owner["name"] if owner else "Sócio 1"
+            wd["owner_name"] = owner["name"] if owner else "Rafael Campos"
             wd["owner_avatar_color"] = owner["avatar_color"] if owner else "#f59e0b"
             watchlists.append(wd)
 
-        active_wl_id = watchlist_id or (watchlists[0]["id"] if watchlists else 1)
-        active_wl = next((w for w in watchlists if w["id"] == active_wl_id), watchlists[0] if watchlists else {})
+        active_wl_id = watchlist_id if watchlist_id is not None else None
+        active_wl = next((w for w in watchlists if w["id"] == active_wl_id), None)
+        if not active_wl:
+            return {
+                "partners": list(partners.values()),
+                "watchlists": watchlists,
+                "active_watchlist_id": None,
+                "settings": get_system_settings(conn),
+                "stats": {
+                    "total_listings": 0,
+                    "exact_and_coachbuilt": 0,
+                    "in_budget_count": 0,
+                    "florida_southeast_count": 0,
+                    "favorites_count": 0,
+                    "new_count": 0,
+                    "interesting_new_count": 0,
+                    "by_source": {},
+                },
+                "recent_scans": [],
+                "recent_notifications": [],
+                "is_scanning": _scan_lock.locked(),
+            }
         min_alert_score = int(active_wl.get("min_alert_score") or 55)
 
         where_wl = "WHERE watchlist_id = ? AND is_dismissed = 0"
@@ -723,12 +812,13 @@ def get_listings(
         params: list[Any] = []
 
         min_alert_score = 55
-        if watchlist_id is not None:
-            clauses.append("l.watchlist_id = ?")
-            params.append(watchlist_id)
-            wl_row = conn.execute("SELECT min_alert_score FROM watchlists WHERE id = ?", (watchlist_id,)).fetchone()
-            if wl_row and wl_row["min_alert_score"]:
-                min_alert_score = int(wl_row["min_alert_score"])
+        if watchlist_id is None:
+            return {"count": 0, "items": []}
+        clauses.append("l.watchlist_id = ?")
+        params.append(watchlist_id)
+        wl_row = conn.execute("SELECT min_alert_score FROM watchlists WHERE id = ?", (watchlist_id,)).fetchone()
+        if wl_row and wl_row["min_alert_score"]:
+            min_alert_score = int(wl_row["min_alert_score"])
 
         if not include_dismissed:
             clauses.append("l.is_dismissed = 0")
@@ -956,12 +1046,16 @@ def update_watchlist(watchlist_id: int, payload: WatchlistUpdateModel) -> dict[s
 
 @app.delete("/api/watchlists/{watchlist_id}")
 def delete_watchlist(watchlist_id: int) -> dict[str, Any]:
-    if watchlist_id == 1:
-        raise HTTPException(status_code=400, detail="A busca principal #1 não pode ser excluída (você pode editá-la ou pausá-la).")
     conn = get_conn()
     try:
         with conn:
+            conn.execute("DELETE FROM listings WHERE watchlist_id = ?", (watchlist_id,))
             conn.execute("DELETE FROM watchlists WHERE id = ?", (watchlist_id,))
+            conn.execute(
+                "INSERT INTO system_settings (key, value_json, updated_at) VALUES ('initial_watchlist_seeded', 'true', ?) "
+                "ON CONFLICT(key) DO UPDATE SET value_json = 'true', updated_at = excluded.updated_at",
+                (utc_now_iso(),),
+            )
         return {"ok": True}
     finally:
         conn.close()

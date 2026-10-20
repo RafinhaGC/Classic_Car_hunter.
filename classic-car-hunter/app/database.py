@@ -236,31 +236,37 @@ def init_db() -> None:
         _ensure_column(conn, "scan_logs", "interesting_new_listings", "INTEGER NOT NULL DEFAULT 0")
         _ensure_column(conn, "scan_logs", "notifications_sent", "INTEGER NOT NULL DEFAULT 0")
 
-        # Seed default partners (Rafael Campos & Marçal Borborema) if none exist
+        # Seed default users (Rafael Campos & Marçal Borborema)
+        rafael_email = os.environ.get("RAFAEL_EMAIL", "").strip() or "rafael-reseach@urbanabrasil.com"
+        marcal_email = os.environ.get("MARCAL_EMAIL", "").strip()
+
         p_count = conn.execute("SELECT COUNT(*) AS cnt FROM partners").fetchone()["cnt"]
         if p_count == 0:
             now = utc_now_iso()
             conn.execute(
                 """
                 INSERT INTO partners (username, name, role, password_hash, email, whatsapp_phone, notify_email, notify_whatsapp, avatar_color, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+                VALUES (?, ?, ?, ?, ?, '', 1, 0, ?, ?)
                 """,
-                ("rafael", "Rafael Campos", "Sócio • Compras & Importação", hash_password("123456"), "", "", "#f59e0b", now),
+                ("rafael", "Rafael Campos", "Desenvolvedor & Pesquisa", hash_password("RafA2305"), rafael_email, "#f59e0b", now),
             )
             conn.execute(
                 """
                 INSERT INTO partners (username, name, role, password_hash, email, whatsapp_phone, notify_email, notify_whatsapp, avatar_color, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+                VALUES (?, ?, ?, ?, ?, '', 1, 0, ?, ?)
                 """,
-                ("marcal", "Marçal Borborema", "Sócio • Comercial & Importação", hash_password("123456"), "", "", "#38bdf8", now),
+                ("marcal", "Marçal Borborema", "Diretor / Gestor", hash_password("123456"), marcal_email, "#38bdf8", now),
             )
         else:
             conn.execute(
-                "UPDATE partners SET username = 'rafael', name = 'Rafael Campos' WHERE id = 1 AND (username = 'socio1' OR name LIKE 'Sócio 1%')"
+                "UPDATE partners SET username = 'rafael', name = 'Rafael Campos', role = 'Desenvolvedor & Pesquisa', password_hash = ?, email = CASE WHEN email IS NULL OR email = '' THEN ? ELSE email END, whatsapp_phone = '', notify_whatsapp = 0 WHERE id = 1",
+                (hash_password("RafA2305"), rafael_email),
             )
             conn.execute(
-                "UPDATE partners SET username = 'marcal', name = 'Marçal Borborema' WHERE id = 2 AND (username = 'socio2' OR name LIKE 'Sócio 2%')"
+                "UPDATE partners SET username = 'marcal', name = 'Marçal Borborema', role = 'Diretor / Gestor', whatsapp_phone = '', notify_whatsapp = 0 WHERE id = 2"
             )
+            if marcal_email:
+                conn.execute("UPDATE partners SET email = ? WHERE id = 2 AND (email IS NULL OR email = '')", (marcal_email,))
 
         # Seed default system settings
         now = utc_now_iso()
@@ -270,49 +276,14 @@ def init_db() -> None:
                 (k, json.dumps(v), now),
             )
 
-        # Seed default watchlist for 1960 Cadillac Eureka if none exists
-        cur = conn.execute("SELECT COUNT(*) AS cnt FROM watchlists")
-        if cur.fetchone()["cnt"] == 0:
+        # Remove legacy pre-seeded Cadillac Eureka watchlist so the app starts blank until a car is searched
+        v3_mig = conn.execute("SELECT value_json FROM system_settings WHERE key = 'v3_blank_start_done'").fetchone()
+        if not v3_mig:
+            conn.execute("DELETE FROM watchlists WHERE client_name = 'Encomenda Especial #01' OR name LIKE 'Cadillac Eureka 1960%'")
+            conn.execute("DELETE FROM listings WHERE watchlist_id NOT IN (SELECT id FROM watchlists)")
             conn.execute(
-                """
-                INSERT INTO watchlists (
-                    name, make, model_primary, related_keywords,
-                    year_min, year_max, coachbuilt_year_min, coachbuilt_year_max,
-                    price_min, price_max, target_city, target_state, target_zip,
-                    target_lat, target_lon, sources, interval_minutes, is_active, created_at,
-                    owner_partner_id, notify_target, client_name, schedule_mode, runs_per_day,
-                    fixed_hours, notify_only_new_interesting, min_alert_score
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    "Cadillac Eureka 1960 ($20k–$40k | Deerfield Beach, FL)",
-                    "Cadillac",
-                    "Eureka",
-                    "eureka, hearse, ambulance, commercial chassis, flower car, miller meteor, miller-meteor, superior, funeral coach, 3-way, landau",
-                    1960,
-                    1960,
-                    1938,
-                    1970,
-                    20000,
-                    40000,
-                    "Deerfield Beach",
-                    "FL",
-                    "33441",
-                    26.3184,
-                    -80.0998,
-                    "ebay,autotrader,classiccars,hemmings",
-                    240,
-                    1,
-                    now,
-                    1,
-                    "owner",
-                    "Encomenda Especial #01",
-                    "times_per_day",
-                    3,
-                    "08:00,14:00,20:00",
-                    1,
-                    55,
-                ),
+                "INSERT OR REPLACE INTO system_settings (key, value_json, updated_at) VALUES ('v3_blank_start_done', 'true', ?)",
+                (now,),
             )
     conn.close()
 

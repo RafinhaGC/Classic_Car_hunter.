@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Classic Car Hunter • Plataforma de Importação Sob Demanda</title>
+  <title>Classic Car Hunter • Pesquisa & Importação de Veículos dos EUA</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -25,13 +25,13 @@
     ::-webkit-scrollbar-track { background: #0b0f19; }
     ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #334155; }
-    .glass { background: rgba(15, 23, 42, 0.82); backdrop-filter: blur(12px); }
+    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
   <!-- ================================================================= -->
-  <!-- TELA DE LOGIN DOS SÓCIOS                                          -->
+  <!-- TELA DE LOGIN                                                     -->
   <!-- ================================================================= -->
   <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-7 shadow-2xl">
@@ -40,31 +40,30 @@
           🏁
         </div>
         <div>
-          <span class="text-[11px] uppercase tracking-widest text-amber-400 font-bold">Importação Sob Demanda • EUA → BR</span>
+          <span class="text-[11px] uppercase tracking-widest text-amber-400 font-bold">Pesquisa & Importação • EUA → BR</span>
           <h1 class="text-xl font-extrabold text-white">Classic Car Hunter</h1>
         </div>
       </div>
 
       <p class="text-xs text-slate-400 mb-5 leading-relaxed">
-        Entre com sua conta de sócio. Cada pedido de busca que você criar ou rodar enviará os alertas de WhatsApp e E-mail diretamente para o seu perfil.
+        Entre com sua conta de acesso para pesquisar veículos específicos nos 10 principais portais dos EUA e configurar alertas por e-mail.
       </p>
 
-      <!-- Atalho rápido de seleção de Sócio -->
       <div class="mb-4">
-        <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Acesso Rápido de Sócio</label>
+        <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Selecionar Perfil</label>
         <div class="grid grid-cols-2 gap-2.5">
-          <button type="button" onclick="quickFillPartner('rafael')" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-amber-500/30 text-left transition">
+          <button type="button" onclick="quickFillUser('rafael')" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-amber-500/30 text-left transition">
             <span class="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-bold flex items-center justify-center text-xs">RC</span>
             <div>
               <div class="text-xs font-bold text-white">Rafael Campos</div>
-              <div class="text-[10px] text-slate-400">Usuário: rafael</div>
+              <div class="text-[10px] text-slate-400">Desenvolvedor & Pesquisa</div>
             </div>
           </button>
-          <button type="button" onclick="quickFillPartner('marcal')" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-sky-500/30 text-left transition">
+          <button type="button" onclick="quickFillUser('marcal')" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-sky-500/30 text-left transition">
             <span class="w-8 h-8 rounded-full bg-sky-400 text-slate-950 font-bold flex items-center justify-center text-xs">MB</span>
             <div>
               <div class="text-xs font-bold text-white">Marçal Borborema</div>
-              <div class="text-[10px] text-slate-400">Usuário: marcal</div>
+              <div class="text-[10px] text-slate-400">Diretor / Gestor</div>
             </div>
           </button>
         </div>
@@ -72,30 +71,32 @@
 
       <form onsubmit="handleLogin(event)" class="space-y-3.5">
         <div>
-          <label class="block text-xs text-slate-300 font-medium mb-1">Usuário ou E-mail do Sócio</label>
+          <label class="block text-xs text-slate-300 font-medium mb-1">Usuário ou E-mail</label>
           <input id="loginUsername" type="text" required value="rafael"
             class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none" />
         </div>
         <div>
-          <label class="block text-xs text-slate-300 font-medium mb-1">Senha Individual</label>
-          <input id="loginPassword" type="password" required value="123456"
+          <label class="block text-xs text-slate-300 font-medium mb-1">Senha de Acesso</label>
+          <input id="loginPassword" type="password" required value="" placeholder="Digite sua senha..."
             class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none" />
-          <span class="text-[11px] text-slate-500 mt-1 block">Senha inicial padrão: <code class="text-amber-400">123456</code> (alterável no painel)</span>
         </div>
         <div id="loginError" class="text-xs text-rose-400 hidden"></div>
         <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-lg transition">
           Entrar na Plataforma →
         </button>
       </form>
+      <div class="mt-4 pt-3 border-t border-slate-800/80 text-center text-[11px] text-slate-500">
+        Desenvolvido por <strong class="text-slate-300">Rafael Campos</strong> (rafael-reseach@urbanabrasil.com)
+      </div>
     </div>
   </div>
 
   <!-- ================================================================= -->
-  <!-- TOPBAR EXECUTIVA MULTI-SÓCIO                                      -->
+  <!-- TOPBAR EXECUTIVA                                                  -->
   <!-- ================================================================= -->
   <header class="sticky top-0 z-30 glass border-b border-slate-800/80 px-4 lg:px-8 py-3">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-      <!-- Logo & Seletor de Busca Sob Demanda -->
+      <!-- Logo & Seletor de Pesquisas -->
       <div class="flex items-center gap-3 flex-wrap">
         <div class="flex items-center gap-2.5">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-lg shadow">
@@ -104,65 +105,66 @@
           <div>
             <div class="flex items-center gap-2">
               <span class="font-extrabold text-white text-base tracking-tight">Classic Car Hunter</span>
-              <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-semibold">Importação Sob Demanda</span>
+              <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-semibold">10 Portais EUA</span>
             </div>
-            <p class="text-[11px] text-slate-400 hidden sm:block">Monitoramento Multi-Sócio • Base Logística Flórida (EUA → Brasil)</p>
+            <p class="text-[11px] text-slate-400 hidden sm:block">Monitoramento de Veículos nos EUA • Desenvolvido por Rafael Campos</p>
           </div>
         </div>
 
-        <!-- Dropdown de Pedidos / Buscas -->
+        <!-- Dropdown de Pesquisas -->
         <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
-          <span class="text-xs text-amber-400 font-semibold">🔎 Pedido:</span>
+          <span class="text-xs text-amber-400 font-semibold">🔎 Pesquisa:</span>
           <select id="watchlistSelect" onchange="onWatchlistChange()" class="bg-transparent text-xs font-bold text-white focus:outline-none pr-2 cursor-pointer max-w-[260px] sm:max-w-[340px]">
           </select>
-          <button onclick="openWatchlistModal(false)" title="Configurar esta busca e agendamento" class="text-xs px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
-            ✏️ Editar
+          <button id="btnEditWatchlist" onclick="openWatchlistModal(false)" title="Configurar esta pesquisa e agendamento" class="text-xs px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition hidden">
+            ✏️ Editar / Agendar
           </button>
-          <button onclick="openWatchlistModal(true)" title="Criar nova busca sob demanda" class="text-xs px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-semibold transition">
-            + Nova Encomenda
+          <button onclick="openWatchlistModal(true)" title="Pesquisar um novo veículo específico" class="text-xs px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition">
+            + Nova Pesquisa
           </button>
         </div>
       </div>
 
-      <!-- Ações Rápidas & Perfil do Sócio Logado -->
+      <!-- Ações Rápidas & Perfil Logado -->
       <div class="flex items-center gap-2 flex-wrap">
         <button id="btnScanNow" onclick="triggerScanNow()" class="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow transition">
           <span id="scanIcon">🔄</span>
-          <span id="scanBtnText">Varrer 4 Portais Agora</span>
+          <span id="scanBtnText">Varrer 10 Portais dos EUA</span>
         </button>
 
-        <button onclick="openSendAlertModal()" class="flex items-center gap-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-semibold text-xs px-3 py-2 rounded-xl transition">
-          📲 Enviar WhatsApp / E-mail
+        <button onclick="openSendAlertModal()" class="flex items-center gap-1.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 font-semibold text-xs px-3 py-2 rounded-xl transition">
+          📧 Enviar Relatório por E-mail
         </button>
 
-        <button onclick="openPartnersSettingsModal('partners')" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-3 py-2 rounded-xl transition">
-          ⚙️ Sócios & Alertas
+        <!-- Botão exclusivo do Rafael Campos (Desenvolvedor / Admin) -->
+        <button id="btnAdminAudit" onclick="openPartnersSettingsModal('history')" class="hidden items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 text-xs px-3 py-2 rounded-xl transition font-semibold">
+          🛡️ Auditoria & Config E-mail
         </button>
 
-        <!-- Badge do Sócio Logado -->
+        <!-- Badge do Usuário Logado -->
         <div class="flex items-center gap-2 pl-2 border-l border-slate-800">
           <div id="partnerAvatar" class="w-7 h-7 rounded-full bg-amber-500 text-slate-950 font-extrabold text-xs flex items-center justify-center">
             RC
           </div>
           <div class="text-left hidden md:block">
             <div id="partnerNameDisplay" class="text-xs font-bold text-white leading-tight">Rafael Campos</div>
-            <button onclick="showLoginModal()" class="text-[10px] text-amber-400 hover:underline">Trocar Sócio</button>
+            <button onclick="showLoginModal()" class="text-[10px] text-amber-400 hover:underline">Trocar Conta</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Barra de Contexto da Busca Ativa (Responsável, Cliente, Agendamento Diário, Base EUA) -->
+    <!-- Barra de Contexto da Pesquisa Ativa -->
     <div class="max-w-7xl mx-auto mt-2.5 pt-2 border-t border-slate-800/60 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
       <div class="flex flex-wrap items-center gap-3">
         <span id="wlOwnerBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-200 font-medium">
-          👤 Responsável: —
+          👤 Criado por: —
         </span>
         <span id="wlClientBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300">
-          📋 Cliente: —
+          📋 Demanda: —
         </span>
         <span id="wlScheduleBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300">
-          ⏰ Busca Automática: 3x ao dia
+          ⏰ Agendamento: —
         </span>
         <span id="wlTargetLocationBadge" class="inline-flex items-center gap-1 text-slate-400">
           📍 Base EUA: Deerfield Beach, FL (33441)
@@ -183,18 +185,18 @@
     <!-- KPI CARDS -->
     <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
       <div onclick="applyQuickKpi('all')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
-        <div class="text-[11px] text-slate-400 font-medium">Total na Busca</div>
+        <div class="text-[11px] text-slate-400 font-medium">Total na Pesquisa</div>
         <div id="kpiTotal" class="text-2xl font-extrabold text-white mt-0.5">0</div>
-        <div id="kpiBySource" class="text-[10px] text-slate-500 mt-1 truncate">4 portais ativos</div>
+        <div id="kpiBySource" class="text-[10px] text-slate-500 mt-1 truncate">10 portais monitorados</div>
       </div>
 
       <div onclick="applyQuickKpi('interesting_new')" class="cursor-pointer bg-gradient-to-br from-amber-500/15 to-orange-500/5 hover:from-amber-500/25 border border-amber-500/40 rounded-2xl p-3.5 transition">
         <div class="flex items-center justify-between">
           <span class="text-[11px] text-amber-300 font-bold">🔥 Novidades Relevantes</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">ALERTA</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">NOVO</span>
         </div>
         <div id="kpiInterestingNew" class="text-2xl font-extrabold text-amber-400 mt-0.5">0</div>
-        <div class="text-[10px] text-amber-200/70 mt-1">Novos c/ alto score no dia</div>
+        <div class="text-[10px] text-amber-200/70 mt-1">Novos c/ alto score</div>
       </div>
 
       <div onclick="applyQuickKpi('coachbuilt')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
@@ -206,7 +208,7 @@
       <div onclick="applyQuickKpi('in_budget')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
         <div class="text-[11px] text-sky-400 font-medium">💵 Na Faixa de Preço</div>
         <div id="kpiInBudget" class="text-2xl font-extrabold text-sky-400 mt-0.5">0</div>
-        <div id="kpiBudgetLabel" class="text-[10px] text-slate-500 mt-1">$20k a $40k USD</div>
+        <div id="kpiBudgetLabel" class="text-[10px] text-slate-500 mt-1">Orçamento definido</div>
       </div>
 
       <div onclick="applyQuickKpi('florida')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
@@ -216,9 +218,9 @@
       </div>
 
       <div onclick="applyQuickKpi('favorites')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
-        <div class="text-[11px] text-rose-400 font-medium">⭐ Favoritos dos Sócios</div>
+        <div class="text-[11px] text-rose-400 font-medium">⭐ Favoritos Salvos</div>
         <div id="kpiFavorites" class="text-2xl font-extrabold text-rose-400 mt-0.5">0</div>
-        <div class="text-[10px] text-slate-500 mt-1">Salvos p/ negociação</div>
+        <div class="text-[10px] text-slate-500 mt-1">Separados p/ análise</div>
       </div>
     </section>
 
@@ -234,26 +236,32 @@
             🔥 Novidades Relevantes
           </button>
           <button data-tier="coachbuilt" onclick="setTierFilter('coachbuilt')" class="tier-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
-            🎯 Alvo Exato & Variantes
+            🎯 Modelo Alvo Exato
           </button>
           <button data-tier="priority" onclick="setTierFilter('priority')" class="tier-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
-            💰 Alta Prioridade (No Orçamento)
+            💰 No Orçamento
           </button>
         </div>
 
-        <!-- Filtro de Portal -->
-        <div class="flex flex-wrap items-center gap-1.5" id="sourceTabs">
-          <button data-source="all" onclick="setSourceFilter('all')" class="src-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-700 text-white">Todos Portais</button>
-          <button data-source="ebay" onclick="setSourceFilter('ebay')" class="src-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white">eBay Motors</button>
-          <button data-source="classiccars" onclick="setSourceFilter('classiccars')" class="src-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white">ClassicCars</button>
-          <button data-source="autotrader" onclick="setSourceFilter('autotrader')" class="src-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white">Autotrader</button>
-          <button data-source="hemmings" onclick="setSourceFilter('hemmings')" class="src-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white">Hemmings</button>
+        <!-- Filtro dos 10 Portais dos EUA -->
+        <div class="flex flex-wrap items-center gap-1" id="sourceTabs">
+          <button data-source="all" onclick="setSourceFilter('all')" class="src-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-700 text-white">Todos (10)</button>
+          <button data-source="ebay" onclick="setSourceFilter('ebay')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">eBay Motors</button>
+          <button data-source="classiccars" onclick="setSourceFilter('classiccars')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">ClassicCars</button>
+          <button data-source="autotrader" onclick="setSourceFilter('autotrader')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">AutoTrader</button>
+          <button data-source="hemmings" onclick="setSourceFilter('hemmings')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Hemmings</button>
+          <button data-source="bringatrailer" onclick="setSourceFilter('bringatrailer')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Bring a Trailer</button>
+          <button data-source="classiccom" onclick="setSourceFilter('classiccom')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Classic.com</button>
+          <button data-source="carscom" onclick="setSourceFilter('carscom')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Cars.com</button>
+          <button data-source="cargurus" onclick="setSourceFilter('cargurus')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">CarGurus</button>
+          <button data-source="streetside" onclick="setSourceFilter('streetside')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Streetside</button>
+          <button data-source="carsandbids" onclick="setSourceFilter('carsandbids')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Cars & Bids</button>
         </div>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-800/80">
         <div>
-          <input id="searchInput" type="text" oninput="debounceLoadListings()" placeholder="Buscar modelo, cidade, carruagem, motor..."
+          <input id="searchInput" type="text" oninput="debounceLoadListings()" placeholder="Filtrar nos resultados (cidade, versão, motor)..."
             class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none" />
         </div>
 
@@ -303,23 +311,23 @@
   </main>
 
   <!-- ================================================================= -->
-  <!-- MODAL 1: CRIAR / EDITAR BUSCA SOB DEMANDA & AGENDAMENTO DIÁRIO     -->
+  <!-- MODAL 1: CRIAR / EDITAR PESQUISA DE VEÍCULO & AGENDAMENTO         -->
   <!-- ================================================================= -->
   <div id="watchlistModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
-          <span class="text-[10px] uppercase tracking-widest text-amber-400 font-bold">Encomenda de Cliente / Monitoramento</span>
-          <h2 id="wlModalTitle" class="text-lg font-extrabold text-white">Configurar Busca Sob Demanda</h2>
+          <span class="text-[10px] uppercase tracking-widest text-amber-400 font-bold">Busca em 10 Portais dos EUA</span>
+          <h2 id="wlModalTitle" class="text-lg font-extrabold text-white">Nova Pesquisa de Veículo</h2>
         </div>
         <button onclick="closeWatchlistModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
       </div>
 
-      <!-- Presets Rápidos de Clássicos Raros -->
+      <!-- Exemplos Rápidos Opcionais -->
       <div class="mt-3">
-        <span class="text-[11px] text-slate-400 font-semibold block mb-1.5">⚡ Modelos Rápidos de Encomenda (clique para preencher):</span>
+        <span class="text-[11px] text-slate-400 font-semibold block mb-1.5">⚡ Preenchimento Rápido Opcional (ou digite qualquer veículo abaixo):</span>
         <div class="flex flex-wrap gap-1.5">
-          <button type="button" onclick="applyPreset('eureka')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30">1960 Cadillac Eureka ($20k-$40k)</button>
+          <button type="button" onclick="applyPreset('eureka')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30">1960 Cadillac Eureka</button>
           <button type="button" onclick="applyPreset('mustang')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1967 Ford Mustang Fastback</button>
           <button type="button" onclick="applyPreset('belair')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1957 Chevrolet Bel Air</button>
           <button type="button" onclick="applyPreset('corvette')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1963 Chevrolet Corvette C2</button>
@@ -330,38 +338,38 @@
       <form onsubmit="saveWatchlistForm(event)" class="space-y-4 mt-4 text-xs">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="sm:col-span-2">
-            <label class="block text-slate-300 font-semibold mb-1">Nome da Busca / Pedido</label>
-            <input id="wlName" type="text" required placeholder="Ex: Cadillac Eureka 1960 ($20k–$40k | Deerfield Beach)"
+            <label class="block text-slate-300 font-semibold mb-1">Nome / Título da Pesquisa</label>
+            <input id="wlName" type="text" required placeholder="Ex: Ford Mustang Fastback 1967–1968"
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
           </div>
 
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">👤 Sócio Responsável pela Busca</label>
+            <label class="block text-slate-300 font-semibold mb-1">👤 Responsável pela Pesquisa</label>
             <select id="wlOwnerPartnerId" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
             </select>
           </div>
 
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">📋 Nome do Cliente / Projeto (Opcional)</label>
-            <input id="wlClientName" type="text" placeholder="Ex: Encomenda Sr. Carlos - SP"
+            <label class="block text-slate-300 font-semibold mb-1">📋 Referência / Demanda (Opcional)</label>
+            <input id="wlClientName" type="text" placeholder="Ex: Pedido #01 / Cliente SP"
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
           </div>
 
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Marca (Make)</label>
-            <input id="wlMake" type="text" required placeholder="Ex: Cadillac, Ford, Chevrolet..."
+            <input id="wlMake" type="text" required placeholder="Ex: Cadillac, Ford, Chevrolet, Porsche..."
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
           </div>
 
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">Modelo Principal / Carroceria Alvo</label>
-            <input id="wlModelPrimary" type="text" required placeholder="Ex: Eureka, Mustang, Series 62..."
+            <label class="block text-slate-300 font-semibold mb-1">Modelo Específico</label>
+            <input id="wlModelPrimary" type="text" required placeholder="Ex: Eureka, Mustang, Bel Air, 911..."
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
           </div>
 
           <div class="sm:col-span-2">
-            <label class="block text-slate-300 font-semibold mb-1">Palavras-Chave Relacionadas / Variantes (separadas por vírgula)</label>
-            <input id="wlKeywords" type="text" placeholder="Ex: eureka, hearse, ambulance, commercial chassis, miller meteor, superior"
+            <label class="block text-slate-300 font-semibold mb-1">Palavras-Chave / Carroceria / Variantes (separadas por vírgula)</label>
+            <input id="wlKeywords" type="text" placeholder="Ex: fastback, gt, convertible, coupe, manual..."
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
           </div>
 
@@ -382,7 +390,7 @@
           </div>
 
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">📍 Cidade Base nos EUA (Prioridade de Proximidade)</label>
+            <label class="block text-slate-300 font-semibold mb-1">📍 Cidade Base nos EUA (Cálculo de Frete)</label>
             <input id="wlCity" type="text" required value="Deerfield Beach" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
           </div>
 
@@ -398,15 +406,16 @@
           </div>
         </div>
 
-        <!-- Seção de Agendamento Diário e Alertas por Sócio -->
+        <!-- Seção de Agendamento & Alertas por E-mail -->
         <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-4 space-y-3">
-          <div class="text-xs font-bold text-amber-400">⏰ Programação de Buscas Diárias & Alertas Automáticos</div>
+          <div class="text-xs font-bold text-amber-400">⏰ Frequência de Monitoramento & Notificações por E-mail</div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label class="block text-slate-400 mb-1">Modo de Agendamento</label>
               <select id="wlScheduleMode" onchange="toggleScheduleModeUI()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
                 <option value="times_per_day">Rodar X vezes por dia</option>
+                <option value="times_per_week">Rodar X vezes na semana</option>
                 <option value="fixed_hours">Horários fixos do dia</option>
                 <option value="manual_only">Apenas manual</option>
               </select>
@@ -420,7 +429,16 @@
                 <option value="3" selected>3x por dia (a cada 8h)</option>
                 <option value="4">4x por dia (a cada 6h)</option>
                 <option value="6">6x por dia (a cada 4h)</option>
-                <option value="12">12x por dia (a cada 2h)</option>
+              </select>
+            </div>
+
+            <div id="runsPerWeekBox" class="hidden">
+              <label class="block text-slate-400 mb-1">Quantas vezes na semana?</label>
+              <select id="wlRunsPerWeek" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+                <option value="1">1x por semana (a cada 7 dias)</option>
+                <option value="2" selected>2x por semana (a cada ~3,5 dias)</option>
+                <option value="3">3x por semana (a cada ~2,3 dias)</option>
+                <option value="5">5x por semana (dias úteis)</option>
               </select>
             </div>
 
@@ -431,10 +449,10 @@
             </div>
 
             <div>
-              <label class="block text-slate-400 mb-1">Enviar Alerta Para</label>
+              <label class="block text-slate-400 mb-1">Destinatário do E-mail</label>
               <select id="wlNotifyTarget" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
-                <option value="owner">Apenas o Sócio que fez a busca</option>
-                <option value="both">Ambos os Sócios</option>
+                <option value="owner">Quem criou a pesquisa</option>
+                <option value="both">Rafael Campos & Marçal Borborema</option>
               </select>
             </div>
           </div>
@@ -442,7 +460,7 @@
           <div class="flex flex-wrap items-center gap-4 pt-1">
             <label class="inline-flex items-center gap-2 text-slate-200 cursor-pointer">
               <input id="wlNotifyOnlyInteresting" type="checkbox" checked class="rounded bg-slate-900 border-slate-700 text-amber-500" />
-              <span>Só disparar WhatsApp/E-mail se houver <strong>veículo NOVO relevante</strong> ou <strong>queda de preço</strong></span>
+              <span>Só enviar e-mail se houver <strong>veículo NOVO relevante</strong> ou <strong>queda de preço</strong></span>
             </label>
             <div class="flex items-center gap-1.5">
               <span class="text-slate-400">Score mín. p/ alerta:</span>
@@ -453,12 +471,12 @@
 
         <div class="flex items-center justify-between pt-2">
           <button id="btnDeleteWatchlist" type="button" onclick="deleteCurrentWatchlist()" class="text-rose-400 hover:underline hidden">
-            🗑️ Excluir esta encomenda
+            🗑️ Excluir esta pesquisa
           </button>
           <div class="flex items-center gap-2 ml-auto">
             <button type="button" onclick="closeWatchlistModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700">Cancelar</button>
             <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow">
-              💾 Salvar Busca Sob Demanda
+              💾 Salvar & Buscar nos 10 Portais
             </button>
           </div>
         </div>
@@ -467,98 +485,76 @@
   </div>
 
   <!-- ================================================================= -->
-  <!-- MODAL 2: SÓCIOS, SENHAS & CONFIGURAÇÃO WHATSAPP / E-MAIL (SMTP)   -->
+  <!-- MODAL 2 (EXCLUSIVO RAFAEL): AUDITORIA DE FALHAS, E-MAIL & PERFIS  -->
   <!-- ================================================================= -->
   <div id="partnersModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
-          <span class="text-[10px] uppercase tracking-widest text-amber-400 font-bold">Gestão da Sociedade & Canais de Alerta</span>
-          <h2 class="text-lg font-extrabold text-white">Sócios, WhatsApp, E-mail & Histórico de Alertas</h2>
+          <span class="text-[10px] uppercase tracking-widest text-amber-400 font-bold">Painel Exclusivo do Desenvolvedor (Rafael Campos)</span>
+          <h2 class="text-lg font-extrabold text-white">Auditoria de Alertas/Falhas, Servidor de E-mail & Perfis</h2>
         </div>
         <button onclick="closePartnersModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
       </div>
 
       <!-- Abas Internas -->
-      <div class="flex gap-2 mt-4 border-b border-slate-800 pb-2 text-xs font-bold">
-        <button onclick="switchPartnerTab('partners')" id="tabBtnPartners" class="px-3.5 py-1.5 rounded-xl bg-amber-500 text-slate-950">👥 Perfis dos Sócios & Senhas</button>
-        <button onclick="switchPartnerTab('channels')" id="tabBtnChannels" class="px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300">📲 Configurar WhatsApp & E-mail (SMTP)</button>
-        <button onclick="switchPartnerTab('history')" id="tabBtnHistory" class="px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300">📜 Histórico de Envios</button>
+      <div class="flex flex-wrap gap-2 mt-4 border-b border-slate-800 pb-2 text-xs font-bold">
+        <button onclick="switchPartnerTab('history')" id="tabBtnHistory" class="px-3.5 py-1.5 rounded-xl bg-amber-500 text-slate-950">📜 Registro de Auditoria & Falhas</button>
+        <button onclick="switchPartnerTab('channels')" id="tabBtnChannels" class="px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300">📧 Servidor de E-mail (Brevo / SMTP)</button>
+        <button onclick="switchPartnerTab('partners')" id="tabBtnPartners" class="px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300">👥 Perfis de Acesso & Senhas</button>
       </div>
 
-      <!-- ABA 1: PERFIS DOS SÓCIOS -->
-      <div id="tabContentPartners" class="space-y-4 mt-4 text-xs">
-        <p class="text-slate-400">
-          Cadastre o <strong>WhatsApp (com DDI, ex: +5511999999999)</strong> e o <strong>E-mail</strong> de cada sócio. Quando um sócio cria ou agenda uma busca, o agente envia as novidades diretamente para ele.
-        </p>
-        <div id="partnersListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- ABA 1: REGISTRO DE AUDITORIA & FALHAS -->
+      <div id="tabContentHistory" class="space-y-4 mt-4 text-xs">
+        <div class="flex items-center justify-between">
+          <p class="text-slate-400">
+            Registro técnico de disparos de e-mail, erros de entrega e execuções do motor de varredura nos portais dos EUA.
+          </p>
+          <button onclick="loadNotificationsHistory()" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">
+            🔄 Atualizar Logs
+          </button>
+        </div>
+
+        <div>
+          <div class="font-bold text-amber-400 mb-2">📧 Logs de Disparos de E-mail & Falhas</div>
+          <div id="notificationsHistoryList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800">
+          <div class="font-bold text-sky-400 mb-2">🔎 Logs de Execução de Varreduras nos Portais</div>
+          <div id="scanAuditHistoryList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
         </div>
       </div>
 
-      <!-- ABA 2: INTEGRAÇÃO WHATSAPP & E-MAIL -->
+      <!-- ABA 2: SERVIDOR DE E-MAIL (BREVO / SMTP) & CALCULADORA -->
       <div id="tabContentChannels" class="space-y-5 mt-4 text-xs hidden">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Bloco E-mail SMTP -->
-          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
-            <div class="font-bold text-amber-400 text-sm">📧 Configuração de E-mail (SMTP / Gmail)</div>
-            <p class="text-[11px] text-slate-400">Para Gmail, use <code>smtp.gmail.com</code> (Porta 587) e uma <strong>Senha de App</strong> da sua conta Google.</p>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div class="font-bold text-amber-400 text-sm">📧 Configuração de Disparo de E-mail (Brevo API / SMTP)</div>
+          <p class="text-[11px] text-slate-400">
+            Para funcionar no Render sem bloqueio de portas, use <code>brevo.com</code> no Servidor e cole a sua chave API da Brevo (<code>xkeysib-...</code>) no campo de Chave/Senha abaixo.
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label class="block text-slate-300 mb-1">Servidor SMTP</label>
-              <input id="cfgSmtpHost" type="text" placeholder="smtp.gmail.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block text-slate-300 mb-1">Porta SMTP</label>
-                <input id="cfgSmtpPort" type="number" value="587" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
-              </div>
-              <div>
-                <label class="block text-slate-300 mb-1">Nome do Remetente</label>
-                <input id="cfgSmtpFromName" type="text" placeholder="Classic Car Hunter" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
-              </div>
+              <label class="block text-slate-300 mb-1">Provedor / Servidor</label>
+              <input id="cfgSmtpHost" type="text" value="brevo.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
             </div>
             <div>
-              <label class="block text-slate-300 mb-1">E-mail Remetente (Login SMTP)</label>
-              <input id="cfgSmtpUser" type="email" placeholder="sua-importadora@gmail.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+              <label class="block text-slate-300 mb-1">Porta</label>
+              <input id="cfgSmtpPort" type="number" value="587" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
             </div>
             <div>
-              <label class="block text-slate-300 mb-1">Senha de App do E-mail</label>
-              <input id="cfgSmtpPassword" type="password" placeholder="xxxx xxxx xxxx xxxx" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+              <label class="block text-slate-300 mb-1">Nome do Remetente</label>
+              <input id="cfgSmtpFromName" type="text" value="Classic Car Hunter" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
             </div>
           </div>
-
-          <!-- Bloco WhatsApp API -->
-          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
-            <div class="font-bold text-emerald-400 text-sm">💬 Integração Automática de WhatsApp</div>
-            <p class="text-[11px] text-slate-400">
-              Suporta disparo automático em segundo plano via <strong>CallMeBot</strong> (gratuito), <strong>Z-API</strong>, <strong>Evolution API</strong>, <strong>UltraMsg</strong>, <strong>Twilio</strong> ou <strong>Webhook</strong>.
-            </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-slate-300 mb-1">Provedor de WhatsApp</label>
-              <select id="cfgWaProvider" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white">
-                <option value="callmebot">CallMeBot (Gratuito p/ número dos sócios)</option>
-                <option value="zapi">Z-API</option>
-                <option value="evolution">Evolution API</option>
-                <option value="ultramsg">UltraMsg</option>
-                <option value="twilio">Twilio WhatsApp API</option>
-                <option value="webhook">Webhook HTTP (n8n / Make / Zapier)</option>
-              </select>
+              <label class="block text-slate-300 mb-1">E-mail Remetente Autenticado</label>
+              <input id="cfgSmtpUser" type="email" placeholder="rafael-reseach@urbanabrasil.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
             </div>
             <div>
-              <label class="block text-slate-300 mb-1">API Key / Token</label>
-              <input id="cfgWaApiKey" type="text" placeholder="Chave da API (CallMeBot, Z-API, Evolution...)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block text-slate-300 mb-1">Instance ID (Z-API/Evolution)</label>
-                <input id="cfgWaInstance" type="text" placeholder="Opcional p/ CallMeBot" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
-              </div>
-              <div>
-                <label class="block text-slate-300 mb-1">URL Base / Webhook</label>
-                <input id="cfgWaUrl" type="text" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
-              </div>
-            </div>
-            <div class="pt-1 text-[11px] text-slate-400">
-              💡 <strong>Dica:</strong> Mesmo sem chave de API preenchida, o sistema gera o card formatado e abre o envio direto pelo <strong>WhatsApp Web/App (wa.me)</strong> com 1 clique.
+              <label class="block text-slate-300 mb-1">Chave API Brevo (<code>xkeysib-...</code>) ou Senha SMTP</label>
+              <input id="cfgSmtpPassword" type="password" placeholder="xkeysib-..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
             </div>
           </div>
         </div>
@@ -580,15 +576,15 @@
               <input id="cfgOceanFreight" type="number" step="100" value="2800" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
             </div>
             <div>
-              <label class="block text-slate-400 mb-1">Impostos Clássico >30a (%)</label>
+              <label class="block text-slate-400 mb-1">Impostos Clássico &gt;30a (%)</label>
               <input id="cfgClassicTaxPct" type="number" step="1" value="95" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
             </div>
           </div>
         </div>
 
         <div class="flex items-center justify-between pt-2">
-          <button type="button" onclick="sendTestAlert()" class="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-bold">
-            🧪 Testar Disparo p/ Sócio Logado
+          <button type="button" onclick="sendTestAlert()" class="px-4 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 font-bold">
+            🧪 Testar Envio de E-mail Agora
           </button>
           <button type="button" onclick="saveChannelSettings()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow">
             💾 Salvar Configurações
@@ -596,70 +592,65 @@
         </div>
       </div>
 
-      <!-- ABA 3: HISTÓRICO DE ENVIOS -->
-      <div id="tabContentHistory" class="space-y-3 mt-4 text-xs hidden">
-        <div id="notificationsHistoryList" class="space-y-2.5">
+      <!-- ABA 3: PERFIS DE ACESSO -->
+      <div id="tabContentPartners" class="space-y-4 mt-4 text-xs hidden">
+        <p class="text-slate-400">
+          Gerencie o e-mail de recebimento de relatórios e a senha de acesso de cada usuário.
+        </p>
+        <div id="partnersListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+          <span id="partnerSaveStatusMsg" class="text-emerald-400 font-semibold text-xs"></span>
+          <button type="button" onclick="saveAllPartnersAndSettings(this)" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow transition">
+            💾 Salvar Perfis de Acesso
+          </button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- ================================================================= -->
-  <!-- MODAL 3: ENVIAR RESUMO POR WHATSAPP / E-MAIL PARA O SÓCIO         -->
+  <!-- MODAL 3: ENVIAR RELATÓRIO POR E-MAIL                              -->
   <!-- ================================================================= -->
   <div id="sendAlertModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-xs">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
-          <span class="text-[10px] uppercase tracking-widest text-emerald-400 font-bold">Relatório de Oportunidades</span>
-          <h2 class="text-lg font-extrabold text-white">Enviar Resultados por WhatsApp / E-mail</h2>
+          <span class="text-[10px] uppercase tracking-widest text-sky-400 font-bold">Relatório de Oportunidades</span>
+          <h2 class="text-lg font-extrabold text-white">Enviar Resultados por E-mail</h2>
         </div>
         <button onclick="closeSendAlertModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label class="block text-slate-300 font-semibold mb-1">Enviar para qual Sócio?</label>
+          <label class="block text-slate-300 font-semibold mb-1">Destinatário do E-mail</label>
           <select id="manualNotifyPartnerSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
           </select>
         </div>
         <div>
           <label class="block text-slate-300 font-semibold mb-1">Quais veículos incluir?</label>
           <select id="manualNotifyScope" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
-            <option value="top">⭐ Top Oportunidades da Busca (Mais Relevantes)</option>
+            <option value="top">⭐ Melhores Oportunidades da Pesquisa</option>
             <option value="new_interesting">🔥 Apenas Novidades Relevantes Não Vistas</option>
           </select>
         </div>
-      </div>
-
-      <div class="flex items-center gap-4">
-        <label class="inline-flex items-center gap-2 text-slate-200 cursor-pointer">
-          <input id="chkSendWa" type="checkbox" checked class="rounded bg-slate-950 border-slate-700 text-emerald-500" />
-          <span>📲 WhatsApp</span>
-        </label>
-        <label class="inline-flex items-center gap-2 text-slate-200 cursor-pointer">
-          <input id="chkSendEmail" type="checkbox" checked class="rounded bg-slate-950 border-slate-700 text-amber-500" />
-          <span>📧 E-mail</span>
-        </label>
       </div>
 
       <div id="alertDispatchResultBox" class="hidden bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
         <div id="alertDispatchStatusText" class="font-bold text-emerald-400"></div>
         <textarea id="alertPreviewTextarea" rows="7" readonly class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-[11px] text-slate-300 font-mono"></textarea>
         <div class="flex flex-wrap items-center gap-2">
-          <a id="directWaLinkBtn" href="#" target="_blank" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold inline-flex items-center gap-1.5">
-            📲 Abrir e Enviar no WhatsApp Agora →
-          </a>
-          <button type="button" onclick="copyPreviewText()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200">
-            📋 Copiar Texto
+          <button type="button" onclick="copyPreviewText()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">
+            📋 Copiar Resumo em Texto
           </button>
         </div>
       </div>
 
       <div class="flex justify-end gap-2 pt-2">
         <button type="button" onclick="closeSendAlertModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300">Fechar</button>
-        <button type="button" onclick="executeManualSendAlert()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow">
-          🚀 Disparar Relatório Agora
+        <button type="button" onclick="executeManualSendAlert()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow">
+          📧 Enviar E-mail Agora
         </button>
       </div>
     </div>
@@ -701,8 +692,8 @@
       </div>
 
       <div class="flex items-center justify-between pt-1">
-        <button type="button" onclick="shareQuoteOnWhatsApp()" class="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-bold">
-          📲 Enviar Cotação p/ Cliente ou Sócio no WhatsApp
+        <button type="button" onclick="copyQuoteText()" class="px-4 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 font-bold">
+          📋 Copiar Demonstrativo da Cotação
         </button>
         <button type="button" onclick="closeImportCalcModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300">Fechar</button>
       </div>
@@ -713,11 +704,12 @@
   <div id="toast" class="fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl bg-slate-900 border border-amber-500/50 text-xs font-semibold text-white shadow-2xl hidden"></div>
 
   <script>
+    const ALL_10_SOURCES = 'ebay,autotrader,classiccars,hemmings,bringatrailer,classiccom,carscom,cargurus,streetside,carsandbids';
     let authToken = localStorage.getItem('cch_token') || '';
     let currentPartner = null;
     let allPartners = [];
     let allWatchlists = [];
-    let activeWatchlistId = 1;
+    let activeWatchlistId = null;
     let systemSettings = {};
     let currentTierFilter = 'all';
     let currentSourceFilter = 'all';
@@ -739,12 +731,18 @@
       return h;
     }
 
+    function isRafaelAdmin() {
+      if (!currentPartner) return false;
+      return currentPartner.username === 'rafael' || currentPartner.id === 1;
+    }
+
     // =====================================================================
-    // AUTENTICAÇÃO DOS SÓCIOS
+    // AUTENTICAÇÃO
     // =====================================================================
-    function quickFillPartner(username) {
+    function quickFillUser(username) {
       document.getElementById('loginUsername').value = username;
-      document.getElementById('loginPassword').value = '123456';
+      document.getElementById('loginPassword').value = username === 'rafael' ? '' : '123456';
+      document.getElementById('loginPassword').focus();
     }
 
     function showLoginModal() {
@@ -757,14 +755,14 @@
         return;
       }
       try {
-        const res = await fetch('/api/auth/me', { headers: apiHeaders() });
+        const res = await fetch('/api/auth/me', { headers: apiHeaders(), cache: 'no-store' });
         if (!res.ok) {
           showLoginModal();
           return;
         }
         const data = await res.json();
         currentPartner = data.partner;
-        updatePartnerHeaderUI();
+        updateUserHeaderUI();
       } catch (e) {
         showLoginModal();
       }
@@ -792,7 +790,7 @@
         localStorage.setItem('cch_token', authToken);
         currentPartner = data.partner;
         document.getElementById('loginOverlay').classList.add('hidden');
-        updatePartnerHeaderUI();
+        updateUserHeaderUI();
         showToast(`Bem-vindo, ${currentPartner.name}!`);
         await loadDashboard();
       } catch (err) {
@@ -801,7 +799,7 @@
       }
     }
 
-    function updatePartnerHeaderUI() {
+    function updateUserHeaderUI() {
       if (!currentPartner) return;
       const av = document.getElementById('partnerAvatar');
       const nm = document.getElementById('partnerNameDisplay');
@@ -809,6 +807,17 @@
       av.textContent = initials;
       av.style.backgroundColor = currentPartner.avatar_color || '#f59e0b';
       nm.textContent = currentPartner.name;
+
+      // Exibe o painel de Auditoria & Config E-mail EXCLUSIVAMENTE para o Rafael Campos
+      const adminBtn = document.getElementById('btnAdminAudit');
+      if (isRafaelAdmin()) {
+        adminBtn.classList.remove('hidden');
+        adminBtn.classList.add('flex');
+      } else {
+        adminBtn.classList.add('hidden');
+        adminBtn.classList.remove('flex');
+        closePartnersModal();
+      }
     }
 
     // =====================================================================
@@ -816,28 +825,99 @@
     // =====================================================================
     async function loadDashboard() {
       const url = activeWatchlistId ? `/api/dashboard?watchlist_id=${activeWatchlistId}` : '/api/dashboard';
-      const res = await fetch(url, { headers: apiHeaders() });
+      const res = await fetch(url, { headers: apiHeaders(), cache: 'no-store' });
       const data = await res.json();
 
       allPartners = data.partners || [];
       allWatchlists = data.watchlists || [];
-      activeWatchlistId = data.active_watchlist_id;
       systemSettings = data.settings || {};
 
-      // Render Watchlist Select
-      const sel = document.getElementById('watchlistSelect');
-      sel.innerHTML = allWatchlists.map(w => {
-        const clientTag = w.client_name ? ` [${w.client_name}]` : '';
-        return `<option value="${w.id}" ${w.id === activeWatchlistId ? 'selected' : ''}>${w.name}${clientTag} (${w.owner_name})</option>`;
-      }).join('');
+      // Sincroniza backup local de e-mail/configurações caso o container em nuvem tenha reiniciado
+      try {
+        const localPartnersRaw = localStorage.getItem('cch_partners_backup');
+        if (localPartnersRaw) {
+          const localPartners = JSON.parse(localPartnersRaw);
+          for (const p of allPartners) {
+            const b = localPartners[p.id];
+            if (b && !p.email && b.email) {
+              p.email = b.email;
+              fetch(`/api/partners/${p.id}`, {
+                method: 'PUT',
+                headers: apiHeaders(),
+                body: JSON.stringify({
+                  name: p.name,
+                  role: p.role || '',
+                  whatsapp_phone: '',
+                  email: p.email,
+                  notify_whatsapp: 0,
+                  notify_email: p.notify_email ?? 1,
+                  avatar_color: p.avatar_color || '#f59e0b'
+                })
+              }).catch(() => {});
+            }
+          }
+        }
+        const localSettingsRaw = localStorage.getItem('cch_settings_backup');
+        if (localSettingsRaw) {
+          const localSettings = JSON.parse(localSettingsRaw);
+          let syncSettings = false;
+          for (const k of ['smtp_host', 'smtp_user', 'smtp_password']) {
+            if (!systemSettings[k] && localSettings[k]) {
+              systemSettings[k] = localSettings[k];
+              syncSettings = true;
+            }
+          }
+          if (syncSettings) {
+            fetch('/api/settings', { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(systemSettings) }).catch(() => {});
+          }
+        }
+      } catch (e) {}
 
-      const activeWl = allWatchlists.find(w => w.id === activeWatchlistId) || allWatchlists[0] || {};
-      document.getElementById('wlOwnerBadge').innerHTML = `👤 Busca de: <strong class="text-white ml-1">${activeWl.owner_name || 'Sócio 1'}</strong>`;
-      document.getElementById('wlClientBadge').textContent = `📋 Cliente: ${activeWl.client_name || 'Estoque / Demanda Interna'}`;
+      // Se a busca ativa não existe mais, mantém null (em branco até o usuário selecionar ou criar)
+      if (activeWatchlistId && !allWatchlists.some(w => w.id === activeWatchlistId)) {
+        activeWatchlistId = null;
+      }
+
+      const sel = document.getElementById('watchlistSelect');
+      const editBtn = document.getElementById('btnEditWatchlist');
+      const blankOpt = `<option value="" ${!activeWatchlistId ? 'selected' : ''}>— Selecione uma pesquisa ou clique em "+ Nova Pesquisa" —</option>`;
+      const wlOpts = allWatchlists.map(w => {
+        const clientTag = w.client_name ? ` [${w.client_name}]` : '';
+        return `<option value="${w.id}" ${w.id === activeWatchlistId ? 'selected' : ''}>${w.name}${clientTag}</option>`;
+      }).join('');
+      sel.innerHTML = blankOpt + wlOpts;
+
+      const activeWl = allWatchlists.find(w => w.id === activeWatchlistId) || null;
+      editBtn.classList.toggle('hidden', !activeWl);
+
+      if (!activeWl) {
+        document.getElementById('wlOwnerBadge').innerHTML = `👤 Criado por: <strong class="text-white ml-1">—</strong>`;
+        document.getElementById('wlClientBadge').textContent = `📋 Demanda: Nenhuma pesquisa selecionada`;
+        document.getElementById('wlScheduleBadge').textContent = `⏰ Agendamento: —`;
+        document.getElementById('wlTargetLocationBadge').textContent = `📍 Base EUA: Deerfield Beach, FL (33441)`;
+        document.getElementById('lastScanTime').textContent = 'Selecione ou crie uma pesquisa para buscar veículos';
+        document.getElementById('kpiTotal').textContent = '0';
+        document.getElementById('kpiInterestingNew').textContent = '0';
+        document.getElementById('kpiCoachbuilt').textContent = '0';
+        document.getElementById('kpiInBudget').textContent = '0';
+        document.getElementById('kpiFlorida').textContent = '0';
+        document.getElementById('kpiFavorites').textContent = '0';
+        document.getElementById('kpiBudgetLabel').textContent = '—';
+        document.getElementById('kpiBySource').textContent = '10 portais prontos para busca';
+        currentListings = [];
+        document.getElementById('resultsCountLabel').textContent = '0 veículos';
+        renderListingsGrid([]);
+        return;
+      }
+
+      document.getElementById('wlOwnerBadge').innerHTML = `👤 Criado por: <strong class="text-white ml-1">${activeWl.owner_name || 'Rafael Campos'}</strong>`;
+      document.getElementById('wlClientBadge').textContent = `📋 Demanda: ${activeWl.client_name || 'Pesquisa Sob Demanda'}`;
 
       let schedText = 'Manual';
       if (activeWl.schedule_mode === 'times_per_day') {
         schedText = `${activeWl.runs_per_day || 3}x ao dia (Automático)`;
+      } else if (activeWl.schedule_mode === 'times_per_week') {
+        schedText = `${activeWl.runs_per_day || 2}x na semana (Automático)`;
       } else if (activeWl.schedule_mode === 'fixed_hours') {
         schedText = `Horários: ${activeWl.fixed_hours || '08:00, 14:00, 20:00'}`;
       }
@@ -845,7 +925,6 @@
       document.getElementById('wlTargetLocationBadge').textContent = `📍 Base EUA: ${activeWl.target_city || 'Deerfield Beach'}, ${activeWl.target_state || 'FL'} (${activeWl.target_zip || '33441'})`;
       document.getElementById('lastScanTime').textContent = activeWl.last_run_at ? `Última varredura: ${new Date(activeWl.last_run_at).toLocaleString('pt-BR')}` : 'Última varredura: Pronta p/ iniciar';
 
-      // KPIs
       const st = data.stats || {};
       document.getElementById('kpiTotal').textContent = st.total_listings || 0;
       document.getElementById('kpiInterestingNew').textContent = st.interesting_new_count || 0;
@@ -853,16 +932,20 @@
       document.getElementById('kpiInBudget').textContent = st.in_budget_count || 0;
       document.getElementById('kpiFlorida').textContent = st.florida_southeast_count || 0;
       document.getElementById('kpiFavorites').textContent = st.favorites_count || 0;
-      document.getElementById('kpiBudgetLabel').textContent = `$${((activeWl.price_min || 20000)/1000).toFixed(0)}k a $${((activeWl.price_max || 40000)/1000).toFixed(0)}k USD`;
+      document.getElementById('kpiBudgetLabel').textContent = `$${((activeWl.price_min || 15000)/1000).toFixed(0)}k a $${((activeWl.price_max || 60000)/1000).toFixed(0)}k USD`;
 
       const bs = st.by_source || {};
-      document.getElementById('kpiBySource').textContent = `eBay:${bs.ebay||0} • Auto:${bs.autotrader||0} • CC:${bs.classiccars||0} • Hem:${bs.hemmings||0}`;
+      const activeSourcesCount = Object.keys(bs).filter(k => bs[k] > 0).length;
+      document.getElementById('kpiBySource').textContent = activeSourcesCount
+        ? `eBay:${bs.ebay||0} • CC:${bs.classiccars||0} • Auto:${bs.autotrader||0} • Hem:${bs.hemmings||0} • +6 portais`
+        : '10 portais monitorados';
 
       await loadListings();
     }
 
     function onWatchlistChange() {
-      activeWatchlistId = parseInt(document.getElementById('watchlistSelect').value, 10);
+      const val = document.getElementById('watchlistSelect').value;
+      activeWatchlistId = val ? parseInt(val, 10) : null;
       loadDashboard();
     }
 
@@ -882,9 +965,9 @@
       currentSourceFilter = src;
       document.querySelectorAll('.src-btn').forEach(btn => {
         if (btn.dataset.source === src) {
-          btn.className = 'src-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-700 text-white';
+          btn.className = 'src-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-700 text-white';
         } else {
-          btn.className = 'src-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 hover:text-white';
+          btn.className = 'src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white';
         }
       });
       loadListings();
@@ -919,6 +1002,13 @@
     }
 
     async function loadListings() {
+      if (!activeWatchlistId) {
+        currentListings = [];
+        document.getElementById('resultsCountLabel').textContent = '0 veículos';
+        renderListingsGrid([]);
+        return;
+      }
+
       const params = new URLSearchParams();
       params.set('watchlist_id', activeWatchlistId);
       params.set('source', currentSourceFilter);
@@ -937,7 +1027,7 @@
       if (q) params.set('search', q);
       params.set('sort_by', document.getElementById('sortSelect').value);
 
-      const res = await fetch(`/api/listings?${params.toString()}`, { headers: apiHeaders() });
+      const res = await fetch(`/api/listings?${params.toString()}`, { headers: apiHeaders(), cache: 'no-store' });
       const data = await res.json();
       currentListings = data.items || [];
       document.getElementById('resultsCountLabel').textContent = `${data.count || 0} veículo(s)`;
@@ -946,12 +1036,30 @@
 
     function renderListingsGrid(items) {
       const grid = document.getElementById('listingsGrid');
+      if (!activeWatchlistId) {
+        grid.innerHTML = `
+          <div class="col-span-full bg-slate-900/70 border border-slate-800 rounded-2xl p-12 text-center space-y-4">
+            <div class="text-4xl">🏁</div>
+            <div class="text-lg font-extrabold text-white">Pesquisa em Branco • Nenhum Veículo Selecionado</div>
+            <p class="text-xs text-slate-400 max-w-lg mx-auto leading-relaxed">
+              Para buscar um veículo específico nos <strong>10 principais portais de venda de autos dos EUA</strong> (eBay Motors, AutoTrader Classics, ClassicCars.com, Hemmings, Bring a Trailer, Classic.com, Cars.com, CarGurus, Streetside Classics e Cars &amp; Bids), clique no botão abaixo ou selecione uma pesquisa já realizada no topo.
+            </p>
+            <div class="pt-1">
+              <button onclick="openWatchlistModal(true)" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-lg transition">
+                + Pesquisar um Carro Específico Agora
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
       if (!items.length) {
         grid.innerHTML = `
           <div class="col-span-full bg-slate-900/70 border border-slate-800 rounded-2xl p-10 text-center space-y-3">
             <div class="text-3xl">🔎</div>
             <div class="text-base font-bold text-white">Nenhum veículo encontrado para este filtro</div>
-            <p class="text-xs text-slate-400 max-w-md mx-auto">Clique em "Varrer 4 Portais Agora" no topo para buscar anúncios ao vivo ou limpe os filtros selecionados.</p>
+            <p class="text-xs text-slate-400 max-w-md mx-auto">Clique em "Varrer 10 Portais dos EUA" no topo para buscar anúncios ao vivo ou ajuste os filtros selecionados.</p>
           </div>
         `;
         return;
@@ -961,7 +1069,13 @@
         ebay: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
         classiccars: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
         autotrader: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
-        hemmings: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+        hemmings: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+        bringatrailer: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+        classiccom: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+        carscom: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+        cargurus: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
+        streetside: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+        carsandbids: 'bg-teal-500/20 text-teal-300 border-teal-500/30'
       };
 
       grid.innerHTML = items.map((it, idx) => {
@@ -975,13 +1089,12 @@
           : `<span class="text-[11px] text-slate-400">📍 ${it.location || 'EUA'}</span>`;
 
         const imgHtml = it.image_url
-          ? `<img src="${it.image_url}" alt="${it.title}" loading="lazy" onerror="this.src='https://placehold.co/600x400/0f172a/f59e0b?text=Cl%C3%A1ssico+EUA'" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300" />`
+          ? `<img src="${it.image_url}" alt="${it.title}" loading="lazy" onerror="this.src='https://placehold.co/600x400/0f172a/f59e0b?text=Ve%C3%ADculo+EUA'" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300" />`
           : `<div class="w-full h-48 bg-slate-950 flex items-center justify-center text-slate-600 text-xs">Sem Foto Disponível</div>`;
 
         return `
           <article class="bg-slate-900 border border-slate-800/90 hover:border-amber-500/40 rounded-2xl overflow-hidden flex flex-col justify-between shadow-lg transition group">
             <div>
-              <!-- Imagem & Badges Superiores -->
               <div class="relative overflow-hidden bg-slate-950">
                 ${imgHtml}
                 <div class="absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5">
@@ -998,7 +1111,6 @@
                 </div>
               </div>
 
-              <!-- Corpo do Card -->
               <div class="p-4 space-y-2.5">
                 <h3 class="font-extrabold text-white text-sm leading-snug line-clamp-2" title="${it.title}">
                   ${it.title}
@@ -1014,22 +1126,19 @@
                   <span class="text-[11px] text-slate-500 truncate max-w-[130px]">${it.location || ''}</span>
                 </div>
 
-                <!-- Motivos de Relevância -->
                 <div class="flex flex-wrap gap-1 pt-1">
                   ${(it.match_reasons || []).slice(0, 3).map(r => `<span class="text-[10px] px-2 py-0.5 rounded bg-slate-800/90 text-slate-300">${r}</span>`).join('')}
                 </div>
 
-                <!-- Notas dos Sócios -->
                 <div class="pt-1">
                   <input type="text" value="${(it.notes || '').replace(/"/g, '&quot;')}"
-                    placeholder="📝 Adicionar nota p/ o sócio (ex: ligar p/ vendedor)..."
+                    placeholder="📝 Adicionar observação sobre este veículo..."
                     onblur="saveListingNote('${encodeURIComponent(it.id)}', this.value)"
                     class="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-slate-200 focus:border-amber-500 focus:outline-none" />
                 </div>
               </div>
             </div>
 
-            <!-- Rodapé de Ações do Card -->
             <div class="px-4 py-3 bg-slate-950/60 border-t border-slate-800/80 flex items-center justify-between gap-2">
               <div class="flex items-center gap-1.5">
                 <button onclick="toggleFavorite('${encodeURIComponent(it.id)}', ${!it.is_favorite})"
@@ -1089,40 +1198,46 @@
     }
 
     async function markAllSeen() {
+      if (!activeWatchlistId) return;
       await fetch(`/api/mark-all-seen?watchlist_id=${activeWatchlistId}`, { method: 'POST', headers: apiHeaders() });
-      showToast('Todos os veículos desta busca foram marcados como vistos.');
+      showToast('Todos os veículos desta pesquisa foram marcados como vistos.');
       await loadDashboard();
     }
 
     async function triggerScanNow() {
+      if (!activeWatchlistId) {
+        openWatchlistModal(true);
+        return;
+      }
       const btn = document.getElementById('btnScanNow');
       const txt = document.getElementById('scanBtnText');
       btn.disabled = true;
-      txt.textContent = 'Varrendo 4 Portais...';
-      showToast('Iniciando varredura ao vivo nos 4 portais...');
+      txt.textContent = 'Varrendo 10 Portais...';
+      showToast('Iniciando varredura ao vivo nos 10 portais dos EUA...');
       try {
         const res = await fetch(`/api/scan/${activeWatchlistId}`, { method: 'POST', headers: apiHeaders() });
         const data = await res.json();
         if (!res.ok) {
           showToast(data.detail || 'Varredura em andamento.');
         } else {
-          showToast(`Varredura concluída: ${data.total_scraped} veículos (${data.interesting_new_listings || 0} novidades relevantes)!`);
+          showToast(`Varredura concluída: ${data.total_scraped} veículos encontrados (${data.interesting_new_listings || 0} novidades)!`);
         }
         await loadDashboard();
       } catch (e) {
         showToast('Erro durante a varredura.');
       } finally {
         btn.disabled = false;
-        txt.textContent = 'Varrer 4 Portais Agora';
+        txt.textContent = 'Varrer 10 Portais dos EUA';
       }
     }
 
     // =====================================================================
-    // MODAL DE BUSCA SOB DEMANDA (CRIAR / EDITAR)
+    // MODAL DE PESQUISA DE VEÍCULO (CRIAR / EDITAR)
     // =====================================================================
     function toggleScheduleModeUI() {
       const mode = document.getElementById('wlScheduleMode').value;
       document.getElementById('runsPerDayBox').classList.toggle('hidden', mode !== 'times_per_day');
+      document.getElementById('runsPerWeekBox').classList.toggle('hidden', mode !== 'times_per_week');
       document.getElementById('fixedHoursBox').classList.toggle('hidden', mode !== 'fixed_hours');
     }
 
@@ -1178,7 +1293,7 @@
 
       const delBtn = document.getElementById('btnDeleteWatchlist');
       if (createNew) {
-        document.getElementById('wlModalTitle').textContent = 'Nova Encomenda / Busca Sob Demanda';
+        document.getElementById('wlModalTitle').textContent = 'Nova Pesquisa de Veículo Específico';
         delBtn.classList.add('hidden');
         document.getElementById('wlName').value = '';
         document.getElementById('wlClientName').value = '';
@@ -1186,38 +1301,41 @@
         document.getElementById('wlModelPrimary').value = '';
         document.getElementById('wlKeywords').value = '';
         document.getElementById('wlYearMin').value = 1960;
-        document.getElementById('wlYearMax').value = 1965;
+        document.getElementById('wlYearMax').value = 1970;
         document.getElementById('wlPriceMin').value = 20000;
-        document.getElementById('wlPriceMax').value = 45000;
+        document.getElementById('wlPriceMax').value = 50000;
         document.getElementById('wlCity').value = 'Deerfield Beach';
         document.getElementById('wlState').value = 'FL';
         document.getElementById('wlZip').value = '33441';
         ownerSel.value = currentPartner ? currentPartner.id : 1;
         document.getElementById('wlScheduleMode').value = 'times_per_day';
         document.getElementById('wlRunsPerDay').value = '3';
+        document.getElementById('wlRunsPerWeek').value = '2';
         document.getElementById('wlFixedHours').value = '08:00,14:00,20:00';
         document.getElementById('wlNotifyTarget').value = 'owner';
         document.getElementById('wlNotifyOnlyInteresting').checked = true;
         document.getElementById('wlMinAlertScore').value = 55;
       } else {
-        const wl = allWatchlists.find(w => w.id === activeWatchlistId) || allWatchlists[0];
-        document.getElementById('wlModalTitle').textContent = `Editar Busca #${wl.id}`;
-        delBtn.classList.toggle('hidden', wl.id === 1);
+        const wl = allWatchlists.find(w => w.id === activeWatchlistId);
+        if (!wl) return;
+        document.getElementById('wlModalTitle').textContent = `Editar Pesquisa #${wl.id}`;
+        delBtn.classList.remove('hidden');
         document.getElementById('wlName').value = wl.name || '';
         document.getElementById('wlClientName').value = wl.client_name || '';
         document.getElementById('wlMake').value = wl.make || '';
         document.getElementById('wlModelPrimary').value = wl.model_primary || '';
         document.getElementById('wlKeywords').value = wl.related_keywords || '';
         document.getElementById('wlYearMin').value = wl.year_min || 1960;
-        document.getElementById('wlYearMax').value = wl.year_max || 1960;
+        document.getElementById('wlYearMax').value = wl.year_max || 1970;
         document.getElementById('wlPriceMin').value = wl.price_min || 20000;
-        document.getElementById('wlPriceMax').value = wl.price_max || 40000;
+        document.getElementById('wlPriceMax').value = wl.price_max || 50000;
         document.getElementById('wlCity').value = wl.target_city || 'Deerfield Beach';
         document.getElementById('wlState').value = wl.target_state || 'FL';
         document.getElementById('wlZip').value = wl.target_zip || '33441';
         ownerSel.value = wl.owner_partner_id || 1;
         document.getElementById('wlScheduleMode').value = wl.schedule_mode || 'times_per_day';
         document.getElementById('wlRunsPerDay').value = String(wl.runs_per_day || 3);
+        document.getElementById('wlRunsPerWeek').value = String(wl.runs_per_day || 2);
         document.getElementById('wlFixedHours').value = wl.fixed_hours || '08:00,14:00,20:00';
         document.getElementById('wlNotifyTarget').value = wl.notify_target || 'owner';
         document.getElementById('wlNotifyOnlyInteresting').checked = wl.notify_only_new_interesting !== 0;
@@ -1233,6 +1351,11 @@
 
     async function saveWatchlistForm(e) {
       e.preventDefault();
+      const schedMode = document.getElementById('wlScheduleMode').value;
+      const runsVal = schedMode === 'times_per_week'
+        ? parseInt(document.getElementById('wlRunsPerWeek').value, 10)
+        : parseInt(document.getElementById('wlRunsPerDay').value, 10);
+
       const payload = {
         name: document.getElementById('wlName').value.trim(),
         client_name: document.getElementById('wlClientName').value.trim(),
@@ -1247,13 +1370,15 @@
         target_city: document.getElementById('wlCity').value.trim(),
         target_state: document.getElementById('wlState').value.trim().toUpperCase(),
         target_zip: document.getElementById('wlZip').value.trim(),
-        schedule_mode: document.getElementById('wlScheduleMode').value,
-        runs_per_day: parseInt(document.getElementById('wlRunsPerDay').value, 10),
+        schedule_mode: schedMode,
+        runs_per_day: runsVal,
         fixed_hours: document.getElementById('wlFixedHours').value.trim(),
         notify_target: document.getElementById('wlNotifyTarget').value,
         notify_only_new_interesting: document.getElementById('wlNotifyOnlyInteresting').checked ? 1 : 0,
         min_alert_score: parseInt(document.getElementById('wlMinAlertScore').value, 10) || 55,
-        sources: 'ebay,autotrader,classiccars,hemmings',
+        sources: ALL_10_SOURCES,
+        auto_notify_email: 1,
+        auto_notify_whatsapp: 0,
         is_active: 1
       };
 
@@ -1264,26 +1389,38 @@
       if (res.ok) {
         activeWatchlistId = saved.id;
         closeWatchlistModal();
-        showToast(isCreatingWatchlist ? 'Nova encomenda criada! Clique em "Varrer 4 Portais Agora" para buscar veículos.' : 'Configurações da busca atualizadas!');
         await loadDashboard();
+        if (isCreatingWatchlist) {
+          await triggerScanNow();
+        } else {
+          showToast('Configurações da pesquisa atualizadas!');
+        }
       }
     }
 
     async function deleteCurrentWatchlist() {
-      if (!confirm('Tem certeza que deseja excluir esta encomenda e seus resultados?')) return;
+      if (!activeWatchlistId) return;
+      if (!confirm('Tem certeza que deseja excluir esta pesquisa e seus resultados?')) return;
       const res = await fetch(`/api/watchlists/${activeWatchlistId}`, { method: 'DELETE', headers: apiHeaders() });
       if (res.ok) {
-        activeWatchlistId = 1;
+        activeWatchlistId = null;
         closeWatchlistModal();
-        showToast('Encomenda removida.');
+        showToast('Pesquisa excluída com sucesso.');
         await loadDashboard();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Erro ao excluir pesquisa.');
       }
     }
 
     // =====================================================================
-    // MODAL DE SÓCIOS, CANAIS (WHATSAPP / SMTP) & HISTÓRICO
+    // PAINEL EXCLUSIVO DO RAFAEL: AUDITORIA, FALHAS, E-MAIL & PERFIS
     // =====================================================================
-    async function openPartnersSettingsModal(initialTab = 'partners') {
+    async function openPartnersSettingsModal(initialTab = 'history') {
+      if (!isRafaelAdmin()) {
+        showToast('Acesso restrito ao desenvolvedor (Rafael Campos).');
+        return;
+      }
       document.getElementById('partnersModal').classList.remove('hidden');
       renderPartnersCards();
       populateChannelSettingsForm();
@@ -1296,7 +1433,7 @@
     }
 
     function switchPartnerTab(tab) {
-      ['partners', 'channels', 'history'].forEach(t => {
+      ['history', 'channels', 'partners'].forEach(t => {
         document.getElementById(`tabContent${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.toggle('hidden', t !== tab);
         const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
         btn.className = t === tab
@@ -1312,158 +1449,255 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="w-8 h-8 rounded-full flex items-center justify-center text-slate-950 font-black text-xs" style="background:${p.avatar_color || '#f59e0b'}">
-                S${p.id}
+                U${p.id}
               </span>
               <div>
                 <div class="font-bold text-white text-sm">${p.name}</div>
-                <div class="text-[11px] text-slate-400">Login: <code>${p.username}</code></div>
+                <div class="text-[11px] text-slate-400">Usuário: <code>${p.username}</code></div>
               </div>
             </div>
           </div>
 
           <div>
-            <label class="block text-slate-400 mb-1">Nome de Exibição do Sócio</label>
+            <label class="block text-slate-400 mb-1">Nome de Exibição</label>
             <input id="pName_${p.id}" type="text" value="${p.name}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div>
-            <label class="block text-slate-400 mb-1">Cargo / Função na Sociedade</label>
+            <label class="block text-slate-400 mb-1">Cargo / Função</label>
             <input id="pRole_${p.id}" type="text" value="${p.role || ''}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div>
-            <label class="block text-slate-400 mb-1">📲 WhatsApp do Sócio (com DDI 55 ou 1)</label>
-            <input id="pWa_${p.id}" type="text" value="${p.whatsapp_phone || ''}" placeholder="Ex: +5511999999999" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            <label class="block text-slate-400 mb-1">📧 E-mail para Alertas</label>
+            <input id="pEmail_${p.id}" type="email" value="${p.email || ''}" placeholder="email@empresa.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div>
-            <label class="block text-slate-400 mb-1">📧 E-mail do Sócio</label>
-            <input id="pEmail_${p.id}" type="email" value="${p.email || ''}" placeholder="socio@importadora.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
-          </div>
-
-          <div>
-            <label class="block text-slate-400 mb-1">🔑 Nova Senha Individual (deixe em branco p/ manter)</label>
+            <label class="block text-slate-400 mb-1">🔑 Alterar Senha (deixe em branco p/ manter)</label>
             <input id="pPass_${p.id}" type="password" placeholder="Nova senha..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div class="flex items-center justify-between pt-2">
-            <div class="flex items-center gap-3">
-              <label class="inline-flex items-center gap-1 text-slate-300">
-                <input id="pNotifWa_${p.id}" type="checkbox" ${p.notify_whatsapp ? 'checked' : ''} class="rounded bg-slate-900 border-slate-700 text-emerald-500" />
-                <span>WhatsApp</span>
-              </label>
-              <label class="inline-flex items-center gap-1 text-slate-300">
-                <input id="pNotifEmail_${p.id}" type="checkbox" ${p.notify_email ? 'checked' : ''} class="rounded bg-slate-900 border-slate-700 text-amber-500" />
-                <span>E-mail</span>
-              </label>
-            </div>
-            <button onclick="savePartnerCard(${p.id}, '${p.avatar_color || '#f59e0b'}')" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold">
-              Salvar Sócio
+            <label class="inline-flex items-center gap-1.5 text-slate-300">
+              <input id="pNotifEmail_${p.id}" type="checkbox" ${p.notify_email ? 'checked' : ''} class="rounded bg-slate-900 border-slate-700 text-amber-500" />
+              <span>Receber Alertas por E-mail</span>
+            </label>
+            <button type="button" onclick="savePartnerCard(${p.id}, '${p.avatar_color || '#f59e0b'}', this)" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition">
+              💾 Salvar Perfil
             </button>
           </div>
         </div>
       `).join('');
     }
 
-    async function savePartnerCard(pid, color) {
+    function persistPartnersLocalBackup() {
+      try {
+        const map = {};
+        for (const p of allPartners) {
+          map[p.id] = {
+            name: p.name,
+            role: p.role,
+            email: p.email,
+            notify_email: p.notify_email,
+            avatar_color: p.avatar_color
+          };
+        }
+        localStorage.setItem('cch_partners_backup', JSON.stringify(map));
+      } catch (e) {}
+    }
+
+    async function savePartnerCard(pid, color, btnEl = null) {
+      const nameEl = document.getElementById(`pName_${pid}`);
+      if (!nameEl) return false;
       const payload = {
-        name: document.getElementById(`pName_${pid}`).value.trim(),
+        name: nameEl.value.trim(),
         role: document.getElementById(`pRole_${pid}`).value.trim(),
-        whatsapp_phone: document.getElementById(`pWa_${pid}`).value.trim(),
+        whatsapp_phone: '',
         email: document.getElementById(`pEmail_${pid}`).value.trim(),
-        notify_whatsapp: document.getElementById(`pNotifWa_${pid}`).checked ? 1 : 0,
+        notify_whatsapp: 0,
         notify_email: document.getElementById(`pNotifEmail_${pid}`).checked ? 1 : 0,
         avatar_color: color,
         new_password: document.getElementById(`pPass_${pid}`).value.trim() || null
       };
-      const res = await fetch(`/api/partners/${pid}`, { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(payload) });
-      if (res.ok) {
-        const data = await res.json();
-        if (currentPartner && currentPartner.id === pid) {
-          currentPartner = data.partner;
-          updatePartnerHeaderUI();
-        }
-        showToast(`Dados de ${payload.name} atualizados com sucesso!`);
-        await loadDashboard();
-        renderPartnersCards();
+
+      const idx = allPartners.findIndex(p => p.id === pid);
+      if (idx !== -1) {
+        allPartners[idx] = { ...allPartners[idx], ...payload };
       }
+      persistPartnersLocalBackup();
+
+      if (btnEl) btnEl.textContent = '⏳ Salvando...';
+
+      try {
+        const res = await fetch(`/api/partners/${pid}`, {
+          method: 'PUT',
+          headers: apiHeaders(),
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.partner && idx !== -1) {
+            allPartners[idx] = data.partner;
+            persistPartnersLocalBackup();
+          }
+          if (currentPartner && currentPartner.id === pid) {
+            currentPartner = data.partner || allPartners[idx];
+            updateUserHeaderUI();
+          }
+        }
+      } catch (e) {}
+
+      if (btnEl) {
+        btnEl.textContent = '✅ Salvo!';
+        setTimeout(() => { btnEl.textContent = '💾 Salvar Perfil'; }, 2500);
+      }
+      const statusEl = document.getElementById('partnerSaveStatusMsg');
+      if (statusEl) {
+        statusEl.textContent = `✅ Perfil de ${payload.name} salvo (${payload.email || 'sem e-mail'})`;
+      }
+      showToast(`✅ Perfil de ${payload.name} atualizado!`);
+      await loadDashboard();
+      return true;
+    }
+
+    async function saveAllPartnersAndSettings(btnEl = null) {
+      if (btnEl) btnEl.textContent = '⏳ Salvando...';
+      for (const p of allPartners) {
+        await savePartnerCard(p.id, p.avatar_color || '#f59e0b');
+      }
+      await saveChannelSettings(true);
+      if (btnEl) {
+        btnEl.textContent = '✅ Salvo!';
+        setTimeout(() => { btnEl.textContent = '💾 Salvar Perfis de Acesso'; }, 2500);
+      }
+      showToast('✅ Perfis e configurações salvos!');
     }
 
     function populateChannelSettingsForm() {
-      document.getElementById('cfgSmtpHost').value = systemSettings.smtp_host || 'smtp.gmail.com';
+      document.getElementById('cfgSmtpHost').value = systemSettings.smtp_host || 'brevo.com';
       document.getElementById('cfgSmtpPort').value = systemSettings.smtp_port || 587;
       document.getElementById('cfgSmtpFromName').value = systemSettings.smtp_from_name || 'Classic Car Hunter';
-      document.getElementById('cfgSmtpUser').value = systemSettings.smtp_user || '';
+      document.getElementById('cfgSmtpUser').value = systemSettings.smtp_user || 'rafael-reseach@urbanabrasil.com';
       document.getElementById('cfgSmtpPassword').value = systemSettings.smtp_password || '';
-      document.getElementById('cfgWaProvider').value = systemSettings.whatsapp_provider || 'callmebot';
-      document.getElementById('cfgWaApiKey').value = systemSettings.whatsapp_api_key || '';
-      document.getElementById('cfgWaInstance').value = systemSettings.whatsapp_instance_id || '';
-      document.getElementById('cfgWaUrl').value = systemSettings.whatsapp_api_url || '';
       document.getElementById('cfgUsdBrl').value = systemSettings.usd_brl_rate || 5.75;
       document.getElementById('cfgTowPerMile').value = systemSettings.inland_tow_per_mile_usd || 1.65;
       document.getElementById('cfgOceanFreight').value = systemSettings.ocean_freight_usd || 2800;
       document.getElementById('cfgClassicTaxPct').value = systemSettings.br_classic_tax_pct || 95;
     }
 
-    async function saveChannelSettings() {
+    async function saveChannelSettings(silent = false) {
+      for (const p of allPartners) {
+        const nameEl = document.getElementById(`pName_${p.id}`);
+        if (nameEl) {
+          const pPayload = {
+            name: nameEl.value.trim(),
+            role: document.getElementById(`pRole_${p.id}`).value.trim(),
+            whatsapp_phone: '',
+            email: document.getElementById(`pEmail_${p.id}`).value.trim(),
+            notify_whatsapp: 0,
+            notify_email: document.getElementById(`pNotifEmail_${p.id}`).checked ? 1 : 0,
+            avatar_color: p.avatar_color || '#f59e0b',
+            new_password: document.getElementById(`pPass_${p.id}`).value.trim() || null
+          };
+          Object.assign(p, pPayload);
+          await fetch(`/api/partners/${p.id}`, { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(pPayload) }).catch(() => {});
+        }
+      }
+      persistPartnersLocalBackup();
+
       const payload = {
         smtp_host: document.getElementById('cfgSmtpHost').value.trim(),
         smtp_port: parseInt(document.getElementById('cfgSmtpPort').value, 10) || 587,
         smtp_from_name: document.getElementById('cfgSmtpFromName').value.trim(),
         smtp_user: document.getElementById('cfgSmtpUser').value.trim(),
-        smtp_password: document.getElementById('cfgSmtpPassword').value,
-        whatsapp_provider: document.getElementById('cfgWaProvider').value,
-        whatsapp_api_key: document.getElementById('cfgWaApiKey').value.trim(),
-        whatsapp_instance_id: document.getElementById('cfgWaInstance').value.trim(),
-        whatsapp_api_url: document.getElementById('cfgWaUrl').value.trim(),
+        smtp_password: document.getElementById('cfgSmtpPassword').value.trim(),
         usd_brl_rate: parseFloat(document.getElementById('cfgUsdBrl').value) || 5.75,
         inland_tow_per_mile_usd: parseFloat(document.getElementById('cfgTowPerMile').value) || 1.65,
         ocean_freight_usd: parseInt(document.getElementById('cfgOceanFreight').value, 10) || 2800,
         br_classic_tax_pct: parseFloat(document.getElementById('cfgClassicTaxPct').value) || 95.0
       };
+      systemSettings = { ...systemSettings, ...payload };
+      try {
+        localStorage.setItem('cch_settings_backup', JSON.stringify(systemSettings));
+      } catch (e) {}
+
       const res = await fetch('/api/settings', { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(payload) });
-      if (res.ok) {
-        showToast('Configurações de canais e calculadora salvas!');
+      if (res.ok && !silent) {
+        showToast('✅ Configurações de e-mail e calculadora salvas!');
         await loadDashboard();
       }
     }
 
     async function sendTestAlert() {
-      await saveChannelSettings();
+      await saveChannelSettings(true);
       closePartnersModal();
       openSendAlertModal(true);
     }
 
     async function loadNotificationsHistory() {
-      const res = await fetch('/api/notifications?limit=20', { headers: apiHeaders() });
+      const res = await fetch('/api/notifications?limit=30', { headers: apiHeaders(), cache: 'no-store' });
       const data = await res.json();
       const list = data.notifications || [];
+      const scans = data.scan_logs || [];
+
       const box = document.getElementById('notificationsHistoryList');
       if (!list.length) {
-        box.innerHTML = `<div class="text-slate-500 p-4 text-center">Nenhum disparo registrado ainda.</div>`;
-        return;
+        box.innerHTML = `<div class="text-slate-500 p-4 text-center bg-slate-950 rounded-xl border border-slate-800">Nenhum disparo de e-mail ou falha registrado ainda.</div>`;
+      } else {
+        box.innerHTML = list.map(n => {
+          const isErr = n.status === 'error';
+          const badgeCls = isErr ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+          return `
+            <div class="bg-slate-950 border ${isErr ? 'border-rose-500/40' : 'border-slate-800'} rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
+              <div class="space-y-0.5">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeCls}">${n.status.toUpperCase()}</span>
+                  <span class="font-bold text-white">📧 E-mail → ${n.partner_name} (${n.recipient})</span>
+                </div>
+                <div class="text-[11px] text-slate-400">${n.subject} • ${n.items_count} veículo(s) • ${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+                <div class="text-[11px] ${isErr ? 'text-rose-400 font-semibold' : 'text-emerald-400'}">${n.error_message || ''}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
       }
-      box.innerHTML = list.map(n => `
-        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <div class="font-bold text-white">${n.channel === 'whatsapp' ? '📲 WhatsApp' : '📧 E-mail'} → ${n.partner_name} (${n.recipient})</div>
-            <div class="text-[11px] text-slate-400">${n.subject} • ${n.items_count} veículo(s) • ${new Date(n.created_at).toLocaleString('pt-BR')}</div>
-            <div class="text-[10px] text-amber-400 mt-0.5">Status: ${n.status.toUpperCase()} — ${n.error_message || ''}</div>
-          </div>
-          ${n.whatsapp_link ? `<a href="${n.whatsapp_link}" target="_blank" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">Abrir no WhatsApp ↗</a>` : ''}
-        </div>
-      `).join('');
+
+      const scanBox = document.getElementById('scanAuditHistoryList');
+      if (!scans.length) {
+        scanBox.innerHTML = `<div class="text-slate-500 p-4 text-center bg-slate-950 rounded-xl border border-slate-800">Nenhuma varredura registrada ainda.</div>`;
+      } else {
+        scanBox.innerHTML = scans.map(s => {
+          const isErr = s.status === 'error';
+          return `
+            <div class="bg-slate-950 border ${isErr ? 'border-rose-500/40' : 'border-slate-800'} rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div class="font-bold text-white">Pesquisa #${s.watchlist_id} • Status: <span class="${isErr ? 'text-rose-400' : 'text-emerald-400'}">${s.status.toUpperCase()}</span></div>
+                <div class="text-[11px] text-slate-400">Veículos encontrados: ${s.total_scraped} (${s.interesting_new_listings || 0} novos relevantes) • ${new Date(s.started_at).toLocaleString('pt-BR')}</div>
+                ${s.error_message ? `<div class="text-[11px] text-rose-400">Falha: ${s.error_message}</div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     }
 
     // =====================================================================
-    // MODAL DE DISPARO MANUAL DE RELATÓRIO WHATSAPP / E-MAIL
+    // MODAL DE DISPARO DE RELATÓRIO POR E-MAIL
     // =====================================================================
     function openSendAlertModal(isTest = false) {
-      const activeWl = allWatchlists.find(w => w.id === activeWatchlistId) || allWatchlists[0] || {};
+      if (!activeWatchlistId && allWatchlists.length > 0) {
+        activeWatchlistId = allWatchlists[0].id;
+      }
+      if (!activeWatchlistId) {
+        showToast('Crie ou selecione uma pesquisa de veículo primeiro para enviar um relatório por e-mail.');
+        return;
+      }
+      const activeWl = allWatchlists.find(w => w.id === activeWatchlistId) || {};
       const sel = document.getElementById('manualNotifyPartnerSelect');
       sel.innerHTML = `
-        <option value="">🎯 Sócio Responsável pela Busca (${activeWl.owner_name || 'Sócio 1'})</option>
-        ${allPartners.map(p => `<option value="${p.id}">${p.name} (${p.whatsapp_phone || p.email || 'Sem contato preenchido'})</option>`).join('')}
+        <option value="">🎯 Responsável pela Pesquisa (${activeWl.owner_name || 'Rafael Campos'})</option>
+        ${allPartners.map(p => `<option value="${p.id}">${p.name} (${p.email || 'Sem e-mail cadastrado'})</option>`).join('')}
       `;
       document.getElementById('alertDispatchResultBox').classList.add('hidden');
       document.getElementById('sendAlertModal').classList.remove('hidden');
@@ -1479,9 +1713,6 @@
     async function executeManualSendAlert(isTest = false) {
       const pidVal = document.getElementById('manualNotifyPartnerSelect').value;
       const scope = document.getElementById('manualNotifyScope').value;
-      const channels = [];
-      if (document.getElementById('chkSendWa').checked) channels.push('whatsapp');
-      if (document.getElementById('chkSendEmail').checked) channels.push('email');
 
       const res = await fetch('/api/notify/send', {
         method: 'POST',
@@ -1489,32 +1720,29 @@
         body: JSON.stringify({
           watchlist_id: activeWatchlistId,
           partner_id: pidVal ? parseInt(pidVal, 10) : null,
-          channels,
+          channels: ['email'],
           only_new_interesting: scope === 'new_interesting',
           is_test: isTest
         })
       });
       const data = await res.json();
       const results = data.results || [];
-      const waRes = results.find(r => r.channel === 'whatsapp') || results[0];
-      if (waRes) {
+      const emailRes = results[0];
+      if (emailRes) {
         document.getElementById('alertDispatchResultBox').classList.remove('hidden');
-        const statusLines = results.map(r => `${r.channel.toUpperCase()} (${r.partner_name}): ${r.detail}`).join(' | ');
-        document.getElementById('alertDispatchStatusText').textContent = statusLines;
-        document.getElementById('alertPreviewTextarea').value = waRes.message_preview || '';
-        const waBtn = document.getElementById('directWaLinkBtn');
-        if (waRes.whatsapp_link) {
-          waBtn.href = waRes.whatsapp_link;
-          waBtn.classList.remove('hidden');
-        }
+        const statusLines = results.map(r => `E-MAIL (${r.partner_name}): ${r.detail}`).join(' | ');
+        const statusEl = document.getElementById('alertDispatchStatusText');
+        statusEl.textContent = statusLines;
+        statusEl.className = emailRes.status === 'sent' ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+        document.getElementById('alertPreviewTextarea').value = emailRes.message_preview || '';
       }
-      showToast('Relatório gerado e registrado com sucesso!');
+      showToast('Processamento de e-mail registrado na auditoria!');
     }
 
     function copyPreviewText() {
       const txt = document.getElementById('alertPreviewTextarea').value;
       navigator.clipboard.writeText(txt);
-      showToast('Relatório copiado para a área de transferência!');
+      showToast('Resumo copiado para a área de transferência!');
     }
 
     // =====================================================================
@@ -1548,11 +1776,7 @@
         inland_tow_usd: manualTow ? (parseInt(towInput.value, 10) || 350) : null
       };
 
-      const res = await fetch('/api/import-calc', {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify(payload)
-      });
+      const res = await fetch('/api/import-calc', { method: 'POST', headers: apiHeaders(), body: JSON.stringify(payload) });
       const data = await res.json();
       const est = data.estimate;
       if (!est) return;
@@ -1560,55 +1784,34 @@
         towInput.value = est.inland_tow_usd;
       }
 
-      const fmtBrl = v => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
-      const fmtUsd = v => '$' + Math.round(v).toLocaleString('en-US') + ' USD';
-
       document.getElementById('calcBreakdownBox').innerHTML = `
-        <div class="flex justify-between text-slate-300">
-          <span>1. Valor do Veículo nos EUA (FOB):</span>
-          <span class="font-bold text-white">${fmtUsd(est.fob_usd)} (${fmtBrl(est.fob_brl)})</span>
-        </div>
-        <div class="flex justify-between text-slate-300">
-          <span>2. Guincho Interno até a Flórida (${Math.round(distMiles)} mi):</span>
-          <span class="font-semibold">${fmtUsd(est.inland_tow_usd)}</span>
-        </div>
-        <div class="flex justify-between text-slate-300">
-          <span>3. Frete Marítimo Flórida → Brasil + Export Broker:</span>
-          <span class="font-semibold">${fmtUsd(est.ocean_freight_usd + est.us_export_broker_usd)}</span>
-        </div>
-        <div class="flex justify-between text-slate-300 pt-1 border-t border-slate-800">
-          <span>4. Impostos de Importação Antigo (&gt;30 anos ~${est.br_tax_pct}%):</span>
-          <span class="font-semibold text-amber-300">${fmtBrl(est.taxes_brl)}</span>
-        </div>
-        <div class="flex justify-between text-slate-300">
-          <span>5. Despachante Aduaneiro + Taxas Portuárias BR:</span>
-          <span class="font-semibold">${fmtBrl(est.despachante_brl)}</span>
-        </div>
-        <div class="flex justify-between items-center pt-2.5 border-t border-slate-700 text-sm">
-          <span class="font-extrabold text-amber-400">CUSTO TOTAL ESTIMADO NO BRASIL:</span>
+        <div class="flex justify-between text-slate-300"><span>Valor FOB do Veículo (EUA):</span><strong>$${est.fob_usd.toLocaleString()} (R$ ${est.fob_brl.toLocaleString('pt-BR')})</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Frete Interno EUA até Porto FL:</span><strong>$${est.inland_tow_usd.toLocaleString()}</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Frete Marítimo (Flórida → Brasil) + Broker:</span><strong>$${(est.ocean_freight_usd + est.us_export_broker_usd).toLocaleString()}</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Impostos Federais/Estaduais Clássico (&gt;30 anos):</span><strong>R$ ${est.taxes_brl.toLocaleString('pt-BR')}</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Desembaraço Aduaneiro &amp; Armazenagem BR:</span><strong>R$ ${est.despachante_brl.toLocaleString('pt-BR')}</strong></div>
+        <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-sm">
+          <span class="font-bold text-amber-400">CUSTO TOTAL ESTIMADO NO BRASIL:</span>
           <span class="text-lg font-black text-emerald-400">${est.total_landed_display}</span>
         </div>
       `;
-      activeCalcListing._lastEst = est;
+      activeCalcListing._lastEstimate = est;
     }
 
-    function shareQuoteOnWhatsApp() {
-      if (!activeCalcListing || !activeCalcListing._lastEst) return;
-      const it = activeCalcListing;
-      const est = it._lastEst;
-      const lines = [
-        `🏁 *SIMULAÇÃO DE IMPORTAÇÃO SOB DEMANDA*`,
-        `🚗 *Veículo:* ${it.title}`,
-        `📍 *Localização EUA:* ${it.location || 'EUA'}`,
-        `━━━━━━━━━━━━━━━━━━━━`,
-        `💵 *Valor nos EUA:* $${est.fob_usd.toLocaleString('en-US')} USD`,
-        `🚛 *Guincho até a Flórida:* $${est.inland_tow_usd.toLocaleString('en-US')} USD`,
-        `🚢 *Frete Marítimo + Exportação:* $${(est.ocean_freight_usd + est.us_export_broker_usd).toLocaleString('en-US')} USD`,
-        `🇧🇷 *Impostos + Desembaraço BR:* R$ ${(est.taxes_brl + est.despachante_brl).toLocaleString('pt-BR')}`,
-        `✅ *Total Estimado Nacionalizado:* *${est.total_landed_display}* (Câmbio R$ ${est.usd_brl_rate})`,
-        `🔗 *Anúncio:* ${it.url}`
-      ];
-      window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
+    function copyQuoteText() {
+      if (!activeCalcListing || !activeCalcListing._lastEstimate) return;
+      const est = activeCalcListing._lastEstimate;
+      const text = [
+        ` SIMULAÇÃO DE IMPORTAÇÃO SOB DEMANDA`,
+        `Veículo: ${activeCalcListing.title}`,
+        `Localização nos EUA: ${activeCalcListing.location || 'EUA'}`,
+        `Valor nos EUA (FOB): $${est.fob_usd.toLocaleString()} USD`,
+        `Frete Interno até Flórida + Marítimo FL->BR: $${(est.inland_tow_usd + est.ocean_freight_usd + est.us_export_broker_usd).toLocaleString()} USD`,
+        `Custo Total Estimado Nacionalizado no Brasil (c/ impostos de clássico >30 anos): ${est.total_landed_display}`,
+        `Link de referência: ${activeCalcListing.url}`
+      ].join('\n');
+      navigator.clipboard.writeText(text);
+      showToast('Cotação copiada para a área de transferência!');
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
