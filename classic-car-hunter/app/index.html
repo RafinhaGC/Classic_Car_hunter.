@@ -2,17 +2,35 @@
 <html lang="pt-BR" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#003478" />
   <title>Classic Car Hunter • Pesquisa & Importação de Veículos dos EUA</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    /* Paleta inspirada no logotipo da Ford: azul Ford (#003478 / #1351B4), azul claro de destaque e prata. */
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            gold: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
-            slate: { 850: '#111827', 900: '#0b0f19', 950: '#060911' }
+            // Neutros: azul-marinho profundo + prata
+            slate: {
+              50: '#f4f7fb', 100: '#e8eef7', 200: '#d5dde9', 300: '#b9c5d8', 400: '#92a3bd',
+              500: '#6a7e9f', 600: '#4a6086', 700: '#2a4476', 800: '#13295a', 850: '#0c2050',
+              900: '#08183c', 950: '#030f27'
+            },
+            // Destaque principal (antigo dourado) -> Azul Ford
+            amber: {
+              50: '#eef5ff', 100: '#d9e8ff', 200: '#b9d3ff', 300: '#8fb8ff', 400: '#5b9bf5',
+              500: '#1f64d6', 600: '#1351b4', 700: '#003478', 800: '#002a60', 900: '#001f48'
+            },
+            // Destaque secundário -> Prata Ford
+            sky: {
+              50: '#f6f8fb', 100: '#e9edf3', 200: '#d6dce6', 300: '#c4ccd9', 400: '#aab5c7',
+              500: '#8e9bb1', 600: '#6f7d96', 700: '#55627b', 800: '#3d485d', 900: '#2a3345'
+            },
+            indigo: { 300: '#a9c4f5', 400: '#7ea6ec', 500: '#4f7fd0', 600: '#3a66b3' },
+            purple: { 300: '#a9c4f5', 400: '#7ea6ec', 500: '#4f7fd0', 600: '#3a66b3' }
           }
         }
       }
@@ -20,12 +38,58 @@
   </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #060911; color: #f1f5f9; }
+    :root { --ford-blue: #003478; --ford-blue-bright: #1351b4; --ford-silver: #c4ccd9; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: 'Inter', sans-serif; color: #f1f5f9;
+      background-color: #030f27;
+      background-image: radial-gradient(ellipse at top, rgba(19,81,180,0.28) 0%, rgba(3,15,39,0) 55%);
+      background-attachment: fixed;
+    }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #0b0f19; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #334155; }
-    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); }
+    ::-webkit-scrollbar-track { background: #08183c; }
+    ::-webkit-scrollbar-thumb { background: #2a4476; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4a6086; }
+    .glass { background: rgba(8, 24, 60, 0.9); backdrop-filter: blur(12px); }
+
+    /* Barra superior em azul Ford com filete prata */
+    .ford-header {
+      background: linear-gradient(180deg, #0b3f94 0%, #003478 100%);
+      border-bottom: 2px solid #c4ccd9;
+    }
+    .ford-header .text-slate-400 { color: #c4d3ec; }
+
+    /* Texto sobre superfícies azul Ford deve ser branco (antes era escuro sobre dourado) */
+    .bg-amber-500.text-slate-950, .bg-amber-400.text-slate-950,
+    .from-amber-500.text-slate-950, .from-amber-400.text-slate-950 { color: #ffffff !important; }
+
+    /* Rolagem horizontal suave para abas/filtros no celular */
+    .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .scroll-x::-webkit-scrollbar { display: none; }
+
+    /* Barra de ações fixa no rodapé (somente celular) */
+    .mobile-nav { padding-bottom: env(safe-area-inset-bottom); }
+
+    @media (max-width: 1023px) {
+      body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+    }
+    @media (max-width: 767px) {
+      /* 16px evita o zoom automático do iOS ao focar em campos */
+      input, select, textarea { font-size: 16px !important; }
+      button, select, input[type="checkbox"] { min-height: 40px; }
+      input[type="checkbox"] { min-width: 20px; min-height: 20px; }
+      /* Modais ocupam a tela inteira no celular */
+      .modal-shell { padding: 0 !important; align-items: stretch !important; }
+      .modal-shell > div {
+        max-width: 100% !important; width: 100% !important;
+        max-height: 100dvh !important; height: 100dvh;
+        border-radius: 0 !important; padding: 16px !important; overflow-y: auto;
+      }
+      #toast { left: 12px !important; right: 12px !important; bottom: calc(88px + env(safe-area-inset-bottom)) !important; text-align: center; }
+    }
+    @media (min-width: 768px) and (max-width: 1023px) {
+      #toast { bottom: calc(88px + env(safe-area-inset-bottom)) !important; }
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -94,103 +158,128 @@
   <!-- ================================================================= -->
   <!-- TOPBAR EXECUTIVA                                                  -->
   <!-- ================================================================= -->
-  <header class="sticky top-0 z-30 glass border-b border-slate-800/80 px-4 lg:px-8 py-3">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-      <!-- Logo & Seletor de Pesquisas -->
-      <div class="flex items-center gap-3 flex-wrap">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-lg shadow">
-            🏁
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="font-extrabold text-white text-base tracking-tight">Classic Car Hunter</span>
-              <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-semibold">10 Portais EUA</span>
-            </div>
-            <p class="text-[11px] text-slate-400 hidden sm:block">Monitoramento de Veículos nos EUA • Desenvolvido por Rafael Campos</p>
-          </div>
+  <header class="lg:sticky top-0 z-30 ford-header px-3 sm:px-4 lg:px-8 py-3 shadow-lg">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-x-3 gap-y-2.5">
+      <!-- Logo -->
+      <div class="order-1 lg:order-1 flex items-center gap-2.5 min-w-0 flex-1 lg:flex-none">
+        <div class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 border border-slate-300/60 flex items-center justify-center text-slate-950 font-black text-lg shadow">
+          🏁
         </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-extrabold text-white text-base tracking-tight truncate">Classic Car Hunter</span>
+            <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 text-slate-100 border border-slate-300/50 font-semibold whitespace-nowrap">10 Portais EUA</span>
+          </div>
+          <p class="text-[11px] text-slate-400 hidden sm:block">Monitoramento de Veículos nos EUA • Desenvolvido por Rafael Campos</p>
+        </div>
+      </div>
 
-        <!-- Dropdown de Pesquisas -->
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
-          <span class="text-xs text-amber-400 font-semibold">🔎 Pesquisa:</span>
-          <select id="watchlistSelect" onchange="onWatchlistChange()" class="bg-transparent text-xs font-bold text-white focus:outline-none pr-2 cursor-pointer max-w-[260px] sm:max-w-[340px]">
+      <!-- Badge do Usuário Logado -->
+      <div class="order-2 lg:order-4 shrink-0 flex items-center gap-2 lg:pl-2 lg:border-l lg:border-slate-300/30">
+        <div id="partnerAvatar" class="w-9 h-9 lg:w-8 lg:h-8 rounded-full bg-amber-500 text-slate-950 font-extrabold text-xs flex items-center justify-center border border-slate-300/60">
+          RC
+        </div>
+        <div class="text-left hidden md:block">
+          <div id="partnerNameDisplay" class="text-xs font-bold text-white leading-tight">Rafael Campos</div>
+          <button onclick="showLoginModal()" class="text-[10px] text-slate-200 hover:underline" style="min-height:0">Trocar Conta</button>
+        </div>
+      </div>
+
+      <!-- Seletor de Pesquisas -->
+      <div class="order-3 lg:order-2 w-full lg:w-auto flex flex-col sm:flex-row sm:items-center gap-2 bg-slate-900/90 border border-slate-300/30 rounded-xl px-2.5 py-2">
+        <div class="flex items-center gap-1.5 flex-1 min-w-0">
+          <span class="text-xs text-slate-100 font-semibold whitespace-nowrap">🔎 Pesquisa:</span>
+          <select id="watchlistSelect" onchange="onWatchlistChange()" class="bg-transparent text-xs font-bold text-white focus:outline-none pr-2 cursor-pointer flex-1 min-w-0 lg:max-w-[340px]">
           </select>
-          <button id="btnEditWatchlist" onclick="openWatchlistModal(false)" title="Configurar esta pesquisa e agendamento" class="text-xs px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition hidden">
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnEditWatchlist" onclick="openWatchlistModal(false)" title="Configurar esta pesquisa e agendamento" class="flex-1 sm:flex-none text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600/60 transition hidden">
             ✏️ Editar / Agendar
           </button>
-          <button onclick="openWatchlistModal(true)" title="Pesquisar um novo veículo específico" class="text-xs px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition">
+          <button onclick="openWatchlistModal(true)" title="Pesquisar um novo veículo específico" class="flex-1 sm:flex-none text-xs px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition border border-slate-300/40">
             + Nova Pesquisa
           </button>
         </div>
       </div>
 
-      <!-- Ações Rápidas & Perfil Logado -->
-      <div class="flex items-center gap-2 flex-wrap">
-        <button id="btnScanNow" onclick="triggerScanNow()" class="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow transition">
+      <!-- Ações Rápidas (desktop / tablet grande). No celular ficam na barra inferior. -->
+      <div class="order-4 lg:order-3 hidden lg:flex items-center gap-2 flex-wrap lg:ml-auto">
+        <button id="btnScanNow" onclick="triggerScanNow()" class="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow border border-slate-300/40 transition">
           <span id="scanIcon">🔄</span>
           <span id="scanBtnText">Varrer 10 Portais dos EUA</span>
         </button>
 
-        <button onclick="openSendAlertModal()" class="flex items-center gap-1.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 font-semibold text-xs px-3 py-2 rounded-xl transition">
+        <button onclick="openSendAlertModal()" class="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-slate-50 border border-slate-300/50 font-semibold text-xs px-3 py-2 rounded-xl transition">
           📧 Enviar Relatório por E-mail
         </button>
 
         <!-- Botão exclusivo do Rafael Campos (Desenvolvedor / Admin) -->
-        <button id="btnAdminAudit" onclick="openPartnersSettingsModal('history')" class="hidden items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 text-xs px-3 py-2 rounded-xl transition font-semibold">
+        <button id="btnAdminAudit" onclick="openPartnersSettingsModal('history')" class="hidden items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-100 border border-slate-300/50 text-xs px-3 py-2 rounded-xl transition font-semibold">
           🛡️ Auditoria & Config E-mail
         </button>
-
-        <!-- Badge do Usuário Logado -->
-        <div class="flex items-center gap-2 pl-2 border-l border-slate-800">
-          <div id="partnerAvatar" class="w-7 h-7 rounded-full bg-amber-500 text-slate-950 font-extrabold text-xs flex items-center justify-center">
-            RC
-          </div>
-          <div class="text-left hidden md:block">
-            <div id="partnerNameDisplay" class="text-xs font-bold text-white leading-tight">Rafael Campos</div>
-            <button onclick="showLoginModal()" class="text-[10px] text-amber-400 hover:underline">Trocar Conta</button>
-          </div>
-        </div>
       </div>
     </div>
 
     <!-- Barra de Contexto da Pesquisa Ativa -->
-    <div class="max-w-7xl mx-auto mt-2.5 pt-2 border-t border-slate-800/60 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
-      <div class="flex flex-wrap items-center gap-3">
-        <span id="wlOwnerBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-200 font-medium">
+    <div class="max-w-7xl mx-auto mt-2.5 pt-2 border-t border-slate-300/25 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 text-xs text-slate-400">
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <span id="wlOwnerBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900/80 text-slate-100 font-medium">
           👤 Criado por: —
         </span>
-        <span id="wlClientBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300">
+        <span id="wlClientBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900/80 border border-slate-300/20 text-slate-200">
           📋 Demanda: —
         </span>
-        <span id="wlScheduleBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300">
+        <span id="wlScheduleBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 border border-slate-300/30 text-slate-100">
           ⏰ Agendamento: —
         </span>
-        <span id="wlTargetLocationBadge" class="inline-flex items-center gap-1 text-slate-400">
+        <span id="wlTargetLocationBadge" class="inline-flex items-center gap-1 text-slate-300">
           📍 Base EUA: Deerfield Beach, FL (33441)
         </span>
       </div>
-      <div class="flex items-center gap-3">
-        <span id="lastScanTime" class="text-[11px] text-slate-500">Última varredura: —</span>
-        <button onclick="markAllSeen()" class="text-[11px] text-slate-400 hover:text-white underline">Marcar novos como vistos</button>
+      <div class="flex items-center justify-between sm:justify-end gap-3">
+        <span id="lastScanTime" class="text-[11px] text-slate-300">Última varredura: —</span>
+        <button onclick="markAllSeen()" class="text-[11px] text-slate-100 hover:text-white underline" style="min-height:0">Marcar novos como vistos</button>
       </div>
     </div>
   </header>
 
   <!-- ================================================================= -->
+  <!-- BARRA DE AÇÕES INFERIOR (CELULAR / TABLET)                        -->
+  <!-- ================================================================= -->
+  <nav class="mobile-nav lg:hidden fixed bottom-0 inset-x-0 z-40 bg-gradient-to-b from-amber-600 to-amber-700 border-t-2 border-slate-300 shadow-2xl">
+    <div class="grid grid-flow-col auto-cols-fr gap-1 px-2 pt-1.5 pb-1.5 max-w-xl mx-auto">
+      <button onclick="openWatchlistModal(true)" class="flex flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold text-white active:bg-white/20">
+        <span class="text-xl leading-none">➕</span><span>Nova</span>
+      </button>
+      <button id="btnScanNowM" onclick="triggerScanNow()" class="flex flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-bold text-slate-950 bg-white/95 active:bg-white shadow">
+        <span id="scanIconM" class="text-xl leading-none">🔄</span><span id="scanBtnTextM">Varrer</span>
+      </button>
+      <button onclick="openSendAlertModal()" class="flex flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold text-white active:bg-white/20">
+        <span class="text-xl leading-none">📧</span><span>E-mail</span>
+      </button>
+      <button id="btnAdminAuditM" onclick="openPartnersSettingsModal('history')" class="hidden flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold text-white active:bg-white/20">
+        <span class="text-xl leading-none">🛡️</span><span>Auditoria</span>
+      </button>
+      <button onclick="showLoginModal()" class="flex flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold text-white active:bg-white/20">
+        <span class="text-xl leading-none">👤</span><span>Conta</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ================================================================= -->
   <!-- CONTEÚDO PRINCIPAL                                                -->
   <!-- ================================================================= -->
-  <main class="max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 flex-1 space-y-6">
+  <main class="max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 flex-1 space-y-4 sm:space-y-6">
 
     <!-- KPI CARDS -->
-    <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
       <div onclick="applyQuickKpi('all')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
         <div class="text-[11px] text-slate-400 font-medium">Total na Pesquisa</div>
         <div id="kpiTotal" class="text-2xl font-extrabold text-white mt-0.5">0</div>
         <div id="kpiBySource" class="text-[10px] text-slate-500 mt-1 truncate">10 portais monitorados</div>
       </div>
 
-      <div onclick="applyQuickKpi('interesting_new')" class="cursor-pointer bg-gradient-to-br from-amber-500/15 to-orange-500/5 hover:from-amber-500/25 border border-amber-500/40 rounded-2xl p-3.5 transition">
+      <div onclick="applyQuickKpi('interesting_new')" class="cursor-pointer bg-gradient-to-br from-amber-500/25 to-sky-300/5 hover:from-amber-500/35 border border-amber-500/40 rounded-2xl p-3.5 transition">
         <div class="flex items-center justify-between">
           <span class="text-[11px] text-amber-300 font-bold">🔥 Novidades Relevantes</span>
           <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">NOVO</span>
@@ -225,10 +314,10 @@
     </section>
 
     <!-- BARRA DE FILTROS -->
-    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+    <section class="bg-slate-900/90 border border-slate-700/70 rounded-2xl p-3 sm:p-4 space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <!-- Abas de Classificação -->
-        <div class="flex flex-wrap items-center gap-1.5" id="tierTabs">
+        <div class="scroll-x flex items-center gap-1.5 -mx-1 px-1 pb-1 sm:flex-wrap sm:mx-0 sm:px-0 sm:pb-0" id="tierTabs">
           <button data-tier="all" onclick="setTierFilter('all')" class="tier-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition">
             Todos os Resultados
           </button>
@@ -244,28 +333,28 @@
         </div>
 
         <!-- Filtro dos 10 Portais dos EUA -->
-        <div class="flex flex-wrap items-center gap-1" id="sourceTabs">
-          <button data-source="all" onclick="setSourceFilter('all')" class="src-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-700 text-white">Todos (10)</button>
-          <button data-source="ebay" onclick="setSourceFilter('ebay')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">eBay Motors</button>
-          <button data-source="classiccars" onclick="setSourceFilter('classiccars')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">ClassicCars</button>
-          <button data-source="autotrader" onclick="setSourceFilter('autotrader')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">AutoTrader</button>
-          <button data-source="hemmings" onclick="setSourceFilter('hemmings')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Hemmings</button>
-          <button data-source="bringatrailer" onclick="setSourceFilter('bringatrailer')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Bring a Trailer</button>
-          <button data-source="classiccom" onclick="setSourceFilter('classiccom')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Classic.com</button>
-          <button data-source="carscom" onclick="setSourceFilter('carscom')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Cars.com</button>
-          <button data-source="cargurus" onclick="setSourceFilter('cargurus')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">CarGurus</button>
-          <button data-source="streetside" onclick="setSourceFilter('streetside')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Streetside</button>
-          <button data-source="carsandbids" onclick="setSourceFilter('carsandbids')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Cars & Bids</button>
+        <div class="scroll-x flex items-center gap-1.5 -mx-1 px-1 pb-1 sm:flex-wrap sm:mx-0 sm:px-0 sm:pb-0" id="sourceTabs">
+          <button data-source="all" onclick="setSourceFilter('all')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-600 text-white border border-slate-300/40">Todos (10)</button>
+          <button data-source="ebay" onclick="setSourceFilter('ebay')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">eBay Motors</button>
+          <button data-source="classiccars" onclick="setSourceFilter('classiccars')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">ClassicCars</button>
+          <button data-source="autotrader" onclick="setSourceFilter('autotrader')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">AutoTrader</button>
+          <button data-source="hemmings" onclick="setSourceFilter('hemmings')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Hemmings</button>
+          <button data-source="bringatrailer" onclick="setSourceFilter('bringatrailer')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Bring a Trailer</button>
+          <button data-source="classiccom" onclick="setSourceFilter('classiccom')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Classic.com</button>
+          <button data-source="carscom" onclick="setSourceFilter('carscom')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Cars.com</button>
+          <button data-source="cargurus" onclick="setSourceFilter('cargurus')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">CarGurus</button>
+          <button data-source="streetside" onclick="setSourceFilter('streetside')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Streetside</button>
+          <button data-source="carsandbids" onclick="setSourceFilter('carsandbids')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Cars & Bids</button>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-800/80">
-        <div>
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-800/80">
+        <div class="col-span-2 lg:col-span-1">
           <input id="searchInput" type="text" oninput="debounceLoadListings()" placeholder="Filtrar nos resultados (cidade, versão, motor)..."
             class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none" />
         </div>
 
-        <div>
+        <div class="col-span-2 sm:col-span-1">
           <select id="priceFilter" onchange="loadListings()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
             <option value="all">💵 Preço: Todos</option>
             <option value="in_budget">✅ Dentro da Faixa Ideal</option>
@@ -274,7 +363,7 @@
           </select>
         </div>
 
-        <div>
+        <div class="col-span-2 sm:col-span-1">
           <select id="distanceFilter" onchange="loadListings()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
             <option value="">📍 Distância da Flórida: Todas</option>
             <option value="250">🌴 Até 250 milhas (Flórida)</option>
@@ -284,7 +373,7 @@
           </select>
         </div>
 
-        <div>
+        <div class="col-span-2 sm:col-span-1">
           <select id="sortSelect" onchange="loadListings()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
             <option value="score">⭐ Ordenar: Maior Relevância (Score)</option>
             <option value="distance_asc">📍 Mais Próximos de Deerfield Beach, FL</option>
@@ -294,7 +383,7 @@
           </select>
         </div>
 
-        <div class="flex items-center justify-between gap-2 px-1">
+        <div class="col-span-2 sm:col-span-1 flex items-center justify-between gap-2 px-1">
           <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
             <input id="onlyFavCheckbox" type="checkbox" onchange="loadListings()" class="rounded bg-slate-950 border-slate-700 text-amber-500 focus:ring-0" />
             <span>⭐ Só Favoritos</span>
@@ -305,7 +394,7 @@
     </section>
 
     <!-- GRADE DE VEÍCULOS -->
-    <section id="listingsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <section id="listingsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
     </section>
 
   </main>
@@ -313,7 +402,7 @@
   <!-- ================================================================= -->
   <!-- MODAL 1: CRIAR / EDITAR PESQUISA DE VEÍCULO & AGENDAMENTO         -->
   <!-- ================================================================= -->
-  <div id="watchlistModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+  <div id="watchlistModal" class="modal-shell fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
@@ -487,7 +576,7 @@
   <!-- ================================================================= -->
   <!-- MODAL 2 (EXCLUSIVO RAFAEL): AUDITORIA DE FALHAS, E-MAIL & PERFIS  -->
   <!-- ================================================================= -->
-  <div id="partnersModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+  <div id="partnersModal" class="modal-shell fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
@@ -612,7 +701,7 @@
   <!-- ================================================================= -->
   <!-- MODAL 3: ENVIAR RELATÓRIO POR E-MAIL                              -->
   <!-- ================================================================= -->
-  <div id="sendAlertModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+  <div id="sendAlertModal" class="modal-shell fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-xs">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
@@ -659,7 +748,7 @@
   <!-- ================================================================= -->
   <!-- MODAL 4: SIMULADOR DE IMPORTAÇÃO EUA -> BRASIL (POR VEÍCULO)      -->
   <!-- ================================================================= -->
-  <div id="importCalcModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+  <div id="importCalcModal" class="modal-shell fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-xs">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
@@ -723,6 +812,18 @@
       t.textContent = msg;
       t.classList.remove('hidden');
       setTimeout(() => t.classList.add('hidden'), 4200);
+    }
+
+    // Cores de avatar no padrão Ford (azul / prata). Converte as cores antigas salvas no banco.
+    function fordAvatarColor(c) {
+      const map = { '#f59e0b': '#1f64d6', '#38bdf8': '#c4ccd9' };
+      return map[(c || '#f59e0b').toLowerCase()] || c || '#1f64d6';
+    }
+    function isLightColor(hex) {
+      const h = (hex || '').replace('#', '');
+      if (h.length !== 6) return false;
+      const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+      return (0.299 * r + 0.587 * g + 0.114 * b) > 160;
     }
 
     function apiHeaders() {
@@ -805,17 +906,16 @@
       const nm = document.getElementById('partnerNameDisplay');
       const initials = currentPartner.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
       av.textContent = initials;
-      av.style.backgroundColor = currentPartner.avatar_color || '#f59e0b';
+      av.style.backgroundColor = fordAvatarColor(currentPartner.avatar_color);
+      av.style.color = isLightColor(fordAvatarColor(currentPartner.avatar_color)) ? '#030f27' : '#ffffff';
       nm.textContent = currentPartner.name;
 
       // Exibe o painel de Auditoria & Config E-mail EXCLUSIVAMENTE para o Rafael Campos
-      const adminBtn = document.getElementById('btnAdminAudit');
+      const adminBtns = [document.getElementById('btnAdminAudit'), document.getElementById('btnAdminAuditM')];
       if (isRafaelAdmin()) {
-        adminBtn.classList.remove('hidden');
-        adminBtn.classList.add('flex');
+        adminBtns.forEach(b => { b.classList.remove('hidden'); b.classList.add('flex'); });
       } else {
-        adminBtn.classList.add('hidden');
-        adminBtn.classList.remove('flex');
+        adminBtns.forEach(b => { b.classList.add('hidden'); b.classList.remove('flex'); });
         closePartnersModal();
       }
     }
@@ -965,9 +1065,9 @@
       currentSourceFilter = src;
       document.querySelectorAll('.src-btn').forEach(btn => {
         if (btn.dataset.source === src) {
-          btn.className = 'src-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-700 text-white';
+          btn.className = 'src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-600 text-white border border-slate-300/40';
         } else {
-          btn.className = 'src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white';
+          btn.className = 'src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white';
         }
       });
       loadListings();
@@ -1089,7 +1189,7 @@
           : `<span class="text-[11px] text-slate-400">📍 ${it.location || 'EUA'}</span>`;
 
         const imgHtml = it.image_url
-          ? `<img src="${it.image_url}" alt="${it.title}" loading="lazy" onerror="this.src='https://placehold.co/600x400/0f172a/f59e0b?text=Ve%C3%ADculo+EUA'" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300" />`
+          ? `<img src="${it.image_url}" alt="${it.title}" loading="lazy" onerror="this.src='https://placehold.co/600x400/08183c/8fb8ff?text=Ve%C3%ADculo+EUA'" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300" />`
           : `<div class="w-full h-48 bg-slate-950 flex items-center justify-center text-slate-600 text-xs">Sem Foto Disponível</div>`;
 
         return `
@@ -1211,8 +1311,11 @@
       }
       const btn = document.getElementById('btnScanNow');
       const txt = document.getElementById('scanBtnText');
-      btn.disabled = true;
+      const btnM = document.getElementById('btnScanNowM');
+      const txtM = document.getElementById('scanBtnTextM');
+      btn.disabled = true; btnM.disabled = true;
       txt.textContent = 'Varrendo 10 Portais...';
+      txtM.textContent = 'Varrendo...';
       showToast('Iniciando varredura ao vivo nos 10 portais dos EUA...');
       try {
         const res = await fetch(`/api/scan/${activeWatchlistId}`, { method: 'POST', headers: apiHeaders() });
@@ -1226,8 +1329,9 @@
       } catch (e) {
         showToast('Erro durante a varredura.');
       } finally {
-        btn.disabled = false;
+        btn.disabled = false; btnM.disabled = false;
         txt.textContent = 'Varrer 10 Portais dos EUA';
+        txtM.textContent = 'Varrer';
       }
     }
 
@@ -1448,7 +1552,7 @@
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="w-8 h-8 rounded-full flex items-center justify-center text-slate-950 font-black text-xs" style="background:${p.avatar_color || '#f59e0b'}">
+              <span class="w-8 h-8 rounded-full flex items-center justify-center text-slate-950 font-black text-xs" style="background:${fordAvatarColor(p.avatar_color)};color:${isLightColor(fordAvatarColor(p.avatar_color)) ? '#030f27' : '#fff'}">
                 U${p.id}
               </span>
               <div>
