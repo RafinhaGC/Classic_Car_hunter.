@@ -283,9 +283,14 @@ def init_db() -> None:
                 (k, json.dumps(v), now),
             )
 
-        # Seed default watchlist for 1960 Cadillac Eureka if none exists
+        # Seed default watchlist for 1960 Cadillac Eureka if none exists and never seeded before
         cur = conn.execute("SELECT COUNT(*) AS cnt FROM watchlists")
-        if cur.fetchone()["cnt"] == 0:
+        seeded_row = conn.execute("SELECT value_json FROM system_settings WHERE key = 'initial_watchlist_seeded'").fetchone()
+        if cur.fetchone()["cnt"] == 0 and not seeded_row:
+            conn.execute(
+                "INSERT OR IGNORE INTO system_settings (key, value_json, updated_at) VALUES ('initial_watchlist_seeded', 'true', ?)",
+                (now,),
+            )
             conn.execute(
                 """
                 INSERT INTO watchlists (

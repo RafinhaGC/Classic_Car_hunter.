@@ -758,6 +758,9 @@ def run_watchlist_scan(watchlist: dict[str, Any]) -> dict[str, Any]:
 
     y_min = int(watchlist.get("year_min", 1960))
     y_max = int(watchlist.get("year_max", 1960))
+    max_classic_year = max(1972, y_max + 5)
+    primary_kw = (watchlist.get("model_primary") or "").strip().lower()
+    broad_model = primary_kw in ("", "all", "todos", "qualquer", "*")
 
     for src in enabled:
         fn = scrapers.get(src)
@@ -765,11 +768,21 @@ def run_watchlist_scan(watchlist: dict[str, Any]) -> dict[str, Any]:
             continue
         t0 = time.time()
         raw_items = fn(watchlist)
-        filtered_items = [
-            it for it in raw_items
-            if it.get("match_tier") in ("exact_target", "coachbuilt")
-            or (it.get("year") is not None and y_min <= int(it["year"]) <= y_max)
-        ]
+        filtered_items = []
+        for it in raw_items:
+            yr = it.get("year")
+            tier = it.get("match_tier")
+            # 1. Exact model match (e.g., "Eureka", "Mustang", "Bel Air") within target year window
+            if tier == "exact_target":
+                if yr is None or (y_min - 2) <= int(yr) <= (y_max + 2):
+                    filtered_items.append(it)
+            # 2. Classic variant / Coachbuilt match (e.g. Hearse, Ambulance, Fastback) within classic window
+            elif tier == "coachbuilt":
+                if yr is None or int(yr) <= max_classic_year:
+                    filtered_items.append(it)
+            # 3. If user searched only by Make + Year (left Model blank / 'todos'), include all models of that year
+            elif broad_model and yr is not None and y_min <= int(yr) <= y_max:
+                filtered_items.append(it)
         elapsed = round(time.time() - t0, 2)
         source_stats[src] = len(filtered_items)
         print(f"[Hunter] {src.upper()}: {len(filtered_items)} vehicles found in {elapsed}s")

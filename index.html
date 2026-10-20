@@ -407,6 +407,7 @@
               <label class="block text-slate-400 mb-1">Modo de Agendamento</label>
               <select id="wlScheduleMode" onchange="toggleScheduleModeUI()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
                 <option value="times_per_day">Rodar X vezes por dia</option>
+                <option value="times_per_week">Rodar X vezes na semana</option>
                 <option value="fixed_hours">Horários fixos do dia</option>
                 <option value="manual_only">Apenas manual</option>
               </select>
@@ -421,6 +422,16 @@
                 <option value="4">4x por dia (a cada 6h)</option>
                 <option value="6">6x por dia (a cada 4h)</option>
                 <option value="12">12x por dia (a cada 2h)</option>
+              </select>
+            </div>
+
+            <div id="runsPerWeekBox" class="hidden">
+              <label class="block text-slate-400 mb-1">Quantas vezes na semana?</label>
+              <select id="wlRunsPerWeek" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white">
+                <option value="1">1x por semana (a cada 7 dias)</option>
+                <option value="2" selected>2x por semana (a cada ~3,5 dias)</option>
+                <option value="3">3x por semana (a cada ~2,3 dias)</option>
+                <option value="5">5x por semana (dias úteis)</option>
               </select>
             </div>
 
@@ -892,6 +903,8 @@
       let schedText = 'Manual';
       if (activeWl.schedule_mode === 'times_per_day') {
         schedText = `${activeWl.runs_per_day || 3}x ao dia (Automático)`;
+      } else if (activeWl.schedule_mode === 'times_per_week') {
+        schedText = `${activeWl.runs_per_day || 2}x na semana (Automático)`;
       } else if (activeWl.schedule_mode === 'fixed_hours') {
         schedText = `Horários: ${activeWl.fixed_hours || '08:00, 14:00, 20:00'}`;
       }
@@ -1177,6 +1190,7 @@
     function toggleScheduleModeUI() {
       const mode = document.getElementById('wlScheduleMode').value;
       document.getElementById('runsPerDayBox').classList.toggle('hidden', mode !== 'times_per_day');
+      document.getElementById('runsPerWeekBox').classList.toggle('hidden', mode !== 'times_per_week');
       document.getElementById('fixedHoursBox').classList.toggle('hidden', mode !== 'fixed_hours');
     }
 
@@ -1249,14 +1263,16 @@
         ownerSel.value = currentPartner ? currentPartner.id : 1;
         document.getElementById('wlScheduleMode').value = 'times_per_day';
         document.getElementById('wlRunsPerDay').value = '3';
+        document.getElementById('wlRunsPerWeek').value = '2';
         document.getElementById('wlFixedHours').value = '08:00,14:00,20:00';
         document.getElementById('wlNotifyTarget').value = 'owner';
         document.getElementById('wlNotifyOnlyInteresting').checked = true;
         document.getElementById('wlMinAlertScore').value = 55;
       } else {
         const wl = allWatchlists.find(w => w.id === activeWatchlistId) || allWatchlists[0];
+        if (!wl) return;
         document.getElementById('wlModalTitle').textContent = `Editar Busca #${wl.id}`;
-        delBtn.classList.toggle('hidden', wl.id === 1);
+        delBtn.classList.remove('hidden');
         document.getElementById('wlName').value = wl.name || '';
         document.getElementById('wlClientName').value = wl.client_name || '';
         document.getElementById('wlMake').value = wl.make || '';
@@ -1272,6 +1288,7 @@
         ownerSel.value = wl.owner_partner_id || 1;
         document.getElementById('wlScheduleMode').value = wl.schedule_mode || 'times_per_day';
         document.getElementById('wlRunsPerDay').value = String(wl.runs_per_day || 3);
+        document.getElementById('wlRunsPerWeek').value = String(wl.runs_per_day || 2);
         document.getElementById('wlFixedHours').value = wl.fixed_hours || '08:00,14:00,20:00';
         document.getElementById('wlNotifyTarget').value = wl.notify_target || 'owner';
         document.getElementById('wlNotifyOnlyInteresting').checked = wl.notify_only_new_interesting !== 0;
@@ -1287,6 +1304,11 @@
 
     async function saveWatchlistForm(e) {
       e.preventDefault();
+      const schedMode = document.getElementById('wlScheduleMode').value;
+      const runsVal = schedMode === 'times_per_week'
+        ? parseInt(document.getElementById('wlRunsPerWeek').value, 10)
+        : parseInt(document.getElementById('wlRunsPerDay').value, 10);
+
       const payload = {
         name: document.getElementById('wlName').value.trim(),
         client_name: document.getElementById('wlClientName').value.trim(),
@@ -1301,8 +1323,8 @@
         target_city: document.getElementById('wlCity').value.trim(),
         target_state: document.getElementById('wlState').value.trim().toUpperCase(),
         target_zip: document.getElementById('wlZip').value.trim(),
-        schedule_mode: document.getElementById('wlScheduleMode').value,
-        runs_per_day: parseInt(document.getElementById('wlRunsPerDay').value, 10),
+        schedule_mode: schedMode,
+        runs_per_day: runsVal,
         fixed_hours: document.getElementById('wlFixedHours').value.trim(),
         notify_target: document.getElementById('wlNotifyTarget').value,
         notify_only_new_interesting: document.getElementById('wlNotifyOnlyInteresting').checked ? 1 : 0,
@@ -1327,10 +1349,13 @@
       if (!confirm('Tem certeza que deseja excluir esta encomenda e seus resultados?')) return;
       const res = await fetch(`/api/watchlists/${activeWatchlistId}`, { method: 'DELETE', headers: apiHeaders() });
       if (res.ok) {
-        activeWatchlistId = 1;
+        activeWatchlistId = null;
         closeWatchlistModal();
-        showToast('Encomenda removida.');
+        showToast('Encomenda removida com sucesso.');
         await loadDashboard();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Erro ao excluir encomenda.');
       }
     }
 

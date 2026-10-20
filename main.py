@@ -233,6 +233,11 @@ def _is_watchlist_due(wl: dict[str, Any]) -> bool:
                 continue
         return False
 
+    if mode == "times_per_week":
+        runs_per_week = max(1, min(14, int(wl.get("runs_per_day") or 2)))
+        interval_min = max(120.0, (7.0 * 1440.0) / runs_per_week)
+        return elapsed_min >= interval_min
+
     # Default: times_per_day (e.g. 2x, 3x, 4x per day)
     runs_per_day = max(1, min(24, int(wl.get("runs_per_day") or 3)))
     interval_min = max(30.0, 1440.0 / runs_per_day)
@@ -998,12 +1003,16 @@ def update_watchlist(watchlist_id: int, payload: WatchlistUpdateModel) -> dict[s
 
 @app.delete("/api/watchlists/{watchlist_id}")
 def delete_watchlist(watchlist_id: int) -> dict[str, Any]:
-    if watchlist_id == 1:
-        raise HTTPException(status_code=400, detail="A busca principal #1 não pode ser excluída (você pode editá-la ou pausá-la).")
     conn = get_conn()
     try:
         with conn:
+            conn.execute("DELETE FROM listings WHERE watchlist_id = ?", (watchlist_id,))
             conn.execute("DELETE FROM watchlists WHERE id = ?", (watchlist_id,))
+            conn.execute(
+                "INSERT INTO system_settings (key, value_json, updated_at) VALUES ('initial_watchlist_seeded', 'true', ?) "
+                "ON CONFLICT(key) DO UPDATE SET value_json = 'true', updated_at = excluded.updated_at",
+                (utc_now_iso(),),
+            )
         return {"ok": True}
     finally:
         conn.close()
