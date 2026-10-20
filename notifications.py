@@ -245,23 +245,61 @@ def send_whatsapp_message(phone: str, message: str, settings: dict[str, Any]) ->
         return "error", str(exc)
 
 
+def _post_ipv4(url: str, **kwargs: Any) -> httpx.Response:
+    """Send HTTP POST forcing IPv4 so Render Docker containers never fail with Errno 101 on IPv6."""
+    transport = httpx.HTTPTransport(local_address="0.0.0.0")
+    with httpx.Client(transport=transport, timeout=12.0) as client:
+        return client.post(url, **kwargs)
+
+
 def send_email_message(to_email: str, subject: str, html_body: str, plain_body: str, settings: dict[str, Any]) -> tuple[str, str]:
-    """Send HTML email via configured SMTP server."""
+    """Send HTML email via configured HTTPS API (Brevo/Resend) or SMTP server."""
     to_addr = (to_email or "").strip()
     if not to_addr:
         return "ready_link", "E-mail do sócio ainda não cadastrado."
 
     smtp_host = (settings.get("smtp_host") or "smtp.gmail.com").strip()
     smtp_port = int(settings.get("smtp_port") or 587)
-    smtp_user = (settings.get("smtp_user") or "").strip()
+    smtp_user = (settings.get("smtp_user") or "").strip() or to_addr
     smtp_password = (settings.get("smtp_password") or "").strip()
     from_name = (settings.get("smtp_from_name") or "Classic Car Hunter").strip()
     use_tls = bool(settings.get("smtp_use_tls", True))
 
-    if not smtp_user or not smtp_password:
-        return "ready_link", "E-mail formatado e gravado no histórico (preencha usuário/senha SMTP nas Configurações para disparo automático)."
+    if not smtp_password:
+        return "ready_link", "E-mail formatado e gravado no histórico (preencha a chave Brevo xkeysib-... no campo Senha nas Configurações para disparo automático)."
 
     try:
+        # Support HTTPS Email APIs (Resend / Brevo) which work on Render Free Tier (port 443 over IPv4)
+        if smtp_password.startswith("re_") or "resend" in smtp_host.lower():
+            resp = _post_ipv4(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {smtp_password}", "Content-Type": "application/json"},
+                json={
+                    "from": f"{from_name} <{smtp_user if '@' in smtp_user else 'onboarding@resend.dev'}>",
+                    "to": [to_addr],
+                    "subject": subject,
+                    "html": html_body,
+                },
+            )
+            if resp.status_code in (200, 201):
+                return "sent", "E-mail enviado com sucesso via Resend HTTPS API!"
+            return "error", f"Resend HTTP {resp.status_code}: {resp.text[:160]}"
+
+        if smtp_password.startswith("xkeysib-") or "brevo" in smtp_host.lower():
+            resp = _post_ipv4(
+                "https://api.brevo.com/v3/smtp/email",
+                headers={"api-key": smtp_password, "Content-Type": "application/json", "Accept": "application/json"},
+                json={
+                    "sender": {"name": from_name, "email": smtp_user},
+                    "to": [{"email": to_addr}],
+                    "subject": subject,
+                    "htmlContent": html_body,
+                },
+            )
+            if resp.status_code in (200, 201, 202):
+                return "sent", "E-mail enviado com sucesso via Brevo HTTPS API!"
+            return "error", f"Brevo HTTP {resp.status_code}: {resp.text[:160]}"
+
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = f"{from_name} <{smtp_user}>"
@@ -270,18 +308,18 @@ def send_email_message(to_email: str, subject: str, html_body: str, plain_body: 
         msg.attach(MIMEText(html_body, "html", "utf-8"))
 
         if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15) as server:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=6) as server:
                 server.login(smtp_user, smtp_password)
                 server.sendmail(smtp_user, [to_addr], msg.as_string())
         else:
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=6) as server:
                 if use_tls:
                     server.starttls()
                 server.login(smtp_user, smtp_password)
                 server.sendmail(smtp_user, [to_addr], msg.as_string())
         return "sent", f"E-mail enviado via {smtp_host}"
     except Exception as exc:
-        return "error", str(exc)
+        return "error", f"Falha SMTP ({exc}). Dica: no plano Free do Render, portas SMTP 587/465 são bloqueadas; use uma chave gratuita da Brevo.com (xkeysib-...) ou Resend.com (re_...) no campo Senha."
 
 
 def dispatch_watchlist_notifications(
