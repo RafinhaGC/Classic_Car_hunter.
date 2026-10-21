@@ -141,11 +141,8 @@
         </div>
         <div>
           <label class="block text-xs text-slate-300 font-medium mb-1">Senha de Acesso</label>
-          <input id="loginPassword" type="password" required value="RafA2305" placeholder="Digite sua senha..."
+          <input id="loginPassword" type="password" required value="" autocomplete="current-password" placeholder="Digite sua senha..."
             class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none" />
-          <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1">
-            <span>Senhas aceitas: <code class="text-amber-400 bg-slate-800 px-1 py-0.5 rounded">RafA2305</code> ou <code class="text-sky-400 bg-slate-800 px-1 py-0.5 rounded">123456</code></span>
-          </div>
         </div>
         <div id="loginError" class="text-xs text-rose-400 hidden"></div>
         <button id="btnLoginSubmit" type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-lg transition">
@@ -930,12 +927,10 @@
     function quickFillUser(username) {
       document.getElementById('loginUsername').value = username;
       const passEl = document.getElementById('loginPassword');
-      if (username === 'rafael') {
-        passEl.value = 'RafA2305';
-      } else if (username === 'marcal') {
-        passEl.value = '123456';
+      if (passEl) {
+        passEl.value = '';
+        passEl.focus();
       }
-      passEl.focus();
     }
 
     function showLoginModal() {
