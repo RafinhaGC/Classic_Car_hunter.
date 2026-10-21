@@ -2,17 +2,35 @@
 <html lang="pt-BR" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#003478" />
   <title>Classic Car Hunter • Pesquisa & Importação de Veículos dos EUA</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    /* Paleta inspirada no logotipo da Ford: azul Ford (#003478 / #1351B4), azul claro de destaque e prata. */
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            gold: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
-            slate: { 850: '#111827', 900: '#0b0f19', 950: '#060911' }
+            // Neutros: azul-marinho profundo + prata
+            slate: {
+              50: '#f4f7fb', 100: '#e8eef7', 200: '#d5dde9', 300: '#b9c5d8', 400: '#92a3bd',
+              500: '#6a7e9f', 600: '#4a6086', 700: '#2a4476', 800: '#13295a', 850: '#0c2050',
+              900: '#08183c', 950: '#030f27'
+            },
+            // Destaque principal (antigo dourado) -> Azul Ford
+            amber: {
+              50: '#eef5ff', 100: '#d9e8ff', 200: '#b9d3ff', 300: '#8fb8ff', 400: '#5b9bf5',
+              500: '#1f64d6', 600: '#1351b4', 700: '#003478', 800: '#002a60', 900: '#001f48'
+            },
+            // Destaque secundário -> Prata Ford
+            sky: {
+              50: '#f6f8fb', 100: '#e9edf3', 200: '#d6dce6', 300: '#c4ccd9', 400: '#aab5c7',
+              500: '#8e9bb1', 600: '#6f7d96', 700: '#55627b', 800: '#3d485d', 900: '#2a3345'
+            },
+            indigo: { 300: '#a9c4f5', 400: '#7ea6ec', 500: '#4f7fd0', 600: '#3a66b3' },
+            purple: { 300: '#a9c4f5', 400: '#7ea6ec', 500: '#4f7fd0', 600: '#3a66b3' }
           }
         }
       }
@@ -20,12 +38,58 @@
   </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #060911; color: #f1f5f9; }
+    :root { --ford-blue: #003478; --ford-blue-bright: #1351b4; --ford-silver: #c4ccd9; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: 'Inter', sans-serif; color: #f1f5f9;
+      background-color: #030f27;
+      background-image: radial-gradient(ellipse at top, rgba(19,81,180,0.28) 0%, rgba(3,15,39,0) 55%);
+      background-attachment: fixed;
+    }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #0b0f19; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #334155; }
-    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); }
+    ::-webkit-scrollbar-track { background: #08183c; }
+    ::-webkit-scrollbar-thumb { background: #2a4476; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4a6086; }
+    .glass { background: rgba(8, 24, 60, 0.9); backdrop-filter: blur(12px); }
+
+    /* Barra superior em azul Ford com filete prata */
+    .ford-header {
+      background: linear-gradient(180deg, #0b3f94 0%, #003478 100%);
+      border-bottom: 2px solid #c4ccd9;
+    }
+    .ford-header .text-slate-400 { color: #c4d3ec; }
+
+    /* Texto sobre superfícies azul Ford deve ser branco (antes era escuro sobre dourado) */
+    .bg-amber-500.text-slate-950, .bg-amber-400.text-slate-950,
+    .from-amber-500.text-slate-950, .from-amber-400.text-slate-950 { color: #ffffff !important; }
+
+    /* Rolagem horizontal suave para abas/filtros no celular */
+    .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .scroll-x::-webkit-scrollbar { display: none; }
+
+    /* Barra de ações fixa no rodapé (somente celular) */
+    .mobile-nav { padding-bottom: env(safe-area-inset-bottom); }
+
+    @media (max-width: 1023px) {
+      body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+    }
+    @media (max-width: 767px) {
+      /* 16px evita o zoom automático do iOS ao focar em campos */
+      input, select, textarea { font-size: 16px !important; }
+      button, select, input[type="checkbox"] { min-height: 40px; }
+      input[type="checkbox"] { min-width: 20px; min-height: 20px; }
+      /* Modais ocupam a tela inteira no celular */
+      .modal-shell { padding: 0 !important; align-items: stretch !important; }
+      .modal-shell > div {
+        max-width: 100% !important; width: 100% !important;
+        max-height: 100dvh !important; height: 100dvh;
+        border-radius: 0 !important; padding: 16px !important; overflow-y: auto;
+      }
+      #toast { left: 12px !important; right: 12px !important; bottom: calc(88px + env(safe-area-inset-bottom)) !important; text-align: center; }
+    }
+    @media (min-width: 768px) and (max-width: 1023px) {
+      #toast { bottom: calc(88px + env(safe-area-inset-bottom)) !important; }
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -33,7 +97,7 @@
   <!-- ================================================================= -->
   <!-- TELA DE LOGIN                                                     -->
   <!-- ================================================================= -->
-  <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden">
+  <div id="loginOverlay" class="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-7 shadow-2xl">
       <div class="flex items-center gap-3 mb-5">
         <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg">
@@ -50,7 +114,7 @@
       </p>
 
       <div class="mb-4">
-        <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Selecionar Perfil</label>
+        <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Selecionar Perfil Rápido</label>
         <div class="grid grid-cols-2 gap-2.5">
           <button type="button" onclick="quickFillUser('rafael')" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-amber-500/30 text-left transition">
             <span class="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-bold flex items-center justify-center text-xs">RC</span>
@@ -79,6 +143,9 @@
           <label class="block text-xs text-slate-300 font-medium mb-1">Senha de Acesso</label>
           <input id="loginPassword" type="password" required value="" placeholder="Digite sua senha..."
             class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none" />
+          <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+            <span>Senha inicial: <code class="text-amber-400 bg-slate-800 px-1 py-0.5 rounded">RafA2305</code> (Rafael) ou <code class="text-sky-400 bg-slate-800 px-1 py-0.5 rounded">123456</code> (Marçal)</span>
+          </div>
         </div>
         <div id="loginError" class="text-xs text-rose-400 hidden"></div>
         <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-lg transition">
@@ -94,103 +161,132 @@
   <!-- ================================================================= -->
   <!-- TOPBAR EXECUTIVA                                                  -->
   <!-- ================================================================= -->
-  <header class="sticky top-0 z-30 glass border-b border-slate-800/80 px-4 lg:px-8 py-3">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-      <!-- Logo & Seletor de Pesquisas -->
-      <div class="flex items-center gap-3 flex-wrap">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-lg shadow">
-            🏁
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="font-extrabold text-white text-base tracking-tight">Classic Car Hunter</span>
-              <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-semibold">10 Portais EUA</span>
-            </div>
-            <p class="text-[11px] text-slate-400 hidden sm:block">Monitoramento de Veículos nos EUA • Desenvolvido por Rafael Campos</p>
-          </div>
+  <header class="lg:sticky top-0 z-30 ford-header px-3 sm:px-4 lg:px-8 py-3 shadow-lg">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-x-3 gap-y-2.5">
+      <!-- Logo -->
+      <div class="order-1 lg:order-1 flex items-center gap-2.5 min-w-0 flex-1 lg:flex-none">
+        <div class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 border border-slate-300/60 flex items-center justify-center text-slate-950 font-black text-lg shadow">
+          🏁
         </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-extrabold text-white text-base tracking-tight truncate">Classic Car Hunter</span>
+            <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 text-slate-100 border border-slate-300/50 font-semibold whitespace-nowrap">10 Portais EUA</span>
+          </div>
+          <p class="text-[11px] text-slate-400 hidden sm:block">Monitoramento de Veículos nos EUA • Desenvolvido por Rafael Campos</p>
+        </div>
+      </div>
 
-        <!-- Dropdown de Pesquisas -->
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
-          <span class="text-xs text-amber-400 font-semibold">🔎 Pesquisa:</span>
-          <select id="watchlistSelect" onchange="onWatchlistChange()" class="bg-transparent text-xs font-bold text-white focus:outline-none pr-2 cursor-pointer max-w-[260px] sm:max-w-[340px]">
+      <!-- Badge do Usuário Logado -->
+      <div class="order-2 lg:order-4 shrink-0 flex items-center gap-2 lg:pl-2 lg:border-l lg:border-slate-300/30">
+        <div id="partnerAvatar" class="w-9 h-9 lg:w-8 lg:h-8 rounded-full bg-slate-700 text-white font-extrabold text-xs flex items-center justify-center border border-slate-300/60">
+          ?
+        </div>
+        <div class="text-left hidden md:block">
+          <div id="partnerNameDisplay" class="text-xs font-bold text-white leading-tight">Não autenticado</div>
+          <button id="partnerAuthBtn" onclick="if(authToken){logoutUser();}else{showLoginModal();}" class="text-[10px] text-amber-300 font-semibold hover:underline" style="min-height:0">Fazer Login</button>
+        </div>
+      </div>
+
+      <!-- Seletor de Pesquisas -->
+      <div class="order-3 lg:order-2 w-full lg:w-auto flex flex-col sm:flex-row sm:items-center gap-2 bg-slate-900/90 border border-slate-300/30 rounded-xl px-2.5 py-2">
+        <div class="flex items-center gap-1.5 flex-1 min-w-0">
+          <span class="text-xs text-slate-100 font-semibold whitespace-nowrap">🔎 Pesquisa:</span>
+          <select id="watchlistSelect" onchange="onWatchlistChange()" class="bg-transparent text-xs font-bold text-white focus:outline-none pr-2 cursor-pointer flex-1 min-w-0 lg:max-w-[340px]">
           </select>
-          <button id="btnEditWatchlist" onclick="openWatchlistModal(false)" title="Configurar esta pesquisa e agendamento" class="text-xs px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition hidden">
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnEditWatchlist" onclick="openWatchlistModal(false)" title="Configurar esta pesquisa e agendamento" class="flex-1 sm:flex-none text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600/60 transition hidden">
             ✏️ Editar / Agendar
           </button>
-          <button onclick="openWatchlistModal(true)" title="Pesquisar um novo veículo específico" class="text-xs px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition">
+          <button onclick="openWatchlistModal(true)" title="Pesquisar um novo veículo específico" class="flex-1 sm:flex-none text-xs px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition border border-slate-300/40">
             + Nova Pesquisa
           </button>
         </div>
       </div>
 
-      <!-- Ações Rápidas & Perfil Logado -->
-      <div class="flex items-center gap-2 flex-wrap">
-        <button id="btnScanNow" onclick="triggerScanNow()" class="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow transition">
+      <!-- Ações Rápidas (desktop / tablet grande). No celular ficam na barra inferior. -->
+      <div class="order-4 lg:order-3 hidden lg:flex items-center gap-2 flex-wrap lg:ml-auto">
+        <button id="btnScanNow" onclick="triggerScanNow()" class="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow border border-slate-300/40 transition">
           <span id="scanIcon">🔄</span>
           <span id="scanBtnText">Varrer 10 Portais dos EUA</span>
         </button>
 
-        <button onclick="openSendAlertModal()" class="flex items-center gap-1.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 font-semibold text-xs px-3 py-2 rounded-xl transition">
+        <button onclick="openSendAlertModal()" class="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-slate-50 border border-slate-300/50 font-semibold text-xs px-3 py-2 rounded-xl transition">
           📧 Enviar Relatório por E-mail
         </button>
 
-        <!-- Botão exclusivo do Rafael Campos (Desenvolvedor / Admin) -->
-        <button id="btnAdminAudit" onclick="openPartnersSettingsModal('history')" class="hidden items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 text-xs px-3 py-2 rounded-xl transition font-semibold">
-          🛡️ Auditoria & Config E-mail
+        <button onclick="openPortalRulesModal()" title="Ver hierarquia de filtros e engenharia reversa dos 5 principais portais dos EUA" class="flex items-center gap-1.5 bg-blue-900/40 hover:bg-blue-800 text-blue-100 border border-blue-400/40 font-semibold text-xs px-3 py-2 rounded-xl transition">
+          🌐 Filtros dos 5 Portais
         </button>
 
-        <!-- Badge do Usuário Logado -->
-        <div class="flex items-center gap-2 pl-2 border-l border-slate-800">
-          <div id="partnerAvatar" class="w-7 h-7 rounded-full bg-amber-500 text-slate-950 font-extrabold text-xs flex items-center justify-center">
-            RC
-          </div>
-          <div class="text-left hidden md:block">
-            <div id="partnerNameDisplay" class="text-xs font-bold text-white leading-tight">Rafael Campos</div>
-            <button onclick="showLoginModal()" class="text-[10px] text-amber-400 hover:underline">Trocar Conta</button>
-          </div>
-        </div>
+        <!-- Botão exclusivo do Rafael Campos (Desenvolvedor / Admin) -->
+        <button id="btnAdminAudit" onclick="openPartnersSettingsModal('history')" class="hidden items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-100 border border-slate-300/50 text-xs px-3 py-2 rounded-xl transition font-semibold">
+          🛡️ Auditoria & Config E-mail
+        </button>
       </div>
     </div>
 
     <!-- Barra de Contexto da Pesquisa Ativa -->
-    <div class="max-w-7xl mx-auto mt-2.5 pt-2 border-t border-slate-800/60 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
-      <div class="flex flex-wrap items-center gap-3">
-        <span id="wlOwnerBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-200 font-medium">
+    <div class="max-w-7xl mx-auto mt-2.5 pt-2 border-t border-slate-300/25 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 text-xs text-slate-400">
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <span id="wlOwnerBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900/80 text-slate-100 font-medium">
           👤 Criado por: —
         </span>
-        <span id="wlClientBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300">
+        <span id="wlClientBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900/80 border border-slate-300/20 text-slate-200">
           📋 Demanda: —
         </span>
-        <span id="wlScheduleBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300">
+        <span id="wlScheduleBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 border border-slate-300/30 text-slate-100">
           ⏰ Agendamento: —
         </span>
-        <span id="wlTargetLocationBadge" class="inline-flex items-center gap-1 text-slate-400">
+        <span id="wlTargetLocationBadge" class="inline-flex items-center gap-1 text-slate-300">
           📍 Base EUA: Deerfield Beach, FL (33441)
         </span>
       </div>
-      <div class="flex items-center gap-3">
-        <span id="lastScanTime" class="text-[11px] text-slate-500">Última varredura: —</span>
-        <button onclick="markAllSeen()" class="text-[11px] text-slate-400 hover:text-white underline">Marcar novos como vistos</button>
+      <div class="flex items-center justify-between sm:justify-end gap-3">
+        <span id="lastScanTime" class="text-[11px] text-slate-300">Última varredura: —</span>
+        <button onclick="markAllSeen()" class="text-[11px] text-slate-100 hover:text-white underline" style="min-height:0">Marcar novos como vistos</button>
       </div>
     </div>
   </header>
 
   <!-- ================================================================= -->
+  <!-- BARRA DE AÇÕES INFERIOR (CELULAR / TABLET)                        -->
+  <!-- ================================================================= -->
+  <nav class="mobile-nav lg:hidden fixed bottom-0 inset-x-0 z-40 bg-gradient-to-b from-amber-600 to-amber-700 border-t-2 border-slate-300 shadow-2xl">
+    <div class="grid grid-flow-col auto-cols-fr gap-1 px-2 pt-1.5 pb-1.5 max-w-xl mx-auto">
+      <button onclick="openWatchlistModal(true)" class="flex flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold text-white active:bg-white/20">
+        <span class="text-xl leading-none">➕</span><span>Nova</span>
+      </button>
+      <button id="btnScanNowM" onclick="triggerScanNow()" class="flex flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-bold text-slate-950 bg-white/95 active:bg-white shadow">
+        <span id="scanIconM" class="text-xl leading-none">🔄</span><span id="scanBtnTextM">Varrer</span>
+      </button>
+      <button onclick="openSendAlertModal()" class="flex flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold text-white active:bg-white/20">
+        <span class="text-xl leading-none">📧</span><span>E-mail</span>
+      </button>
+      <button id="btnAdminAuditM" onclick="openPartnersSettingsModal('history')" class="hidden flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold text-white active:bg-white/20">
+        <span class="text-xl leading-none">🛡️</span><span>Auditoria</span>
+      </button>
+      <button onclick="showLoginModal()" class="flex flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold text-white active:bg-white/20">
+        <span class="text-xl leading-none">👤</span><span>Conta</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ================================================================= -->
   <!-- CONTEÚDO PRINCIPAL                                                -->
   <!-- ================================================================= -->
-  <main class="max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 flex-1 space-y-6">
+  <main class="max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 flex-1 space-y-4 sm:space-y-6">
 
     <!-- KPI CARDS -->
-    <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
       <div onclick="applyQuickKpi('all')" class="cursor-pointer bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-3.5 transition">
         <div class="text-[11px] text-slate-400 font-medium">Total na Pesquisa</div>
         <div id="kpiTotal" class="text-2xl font-extrabold text-white mt-0.5">0</div>
         <div id="kpiBySource" class="text-[10px] text-slate-500 mt-1 truncate">10 portais monitorados</div>
       </div>
 
-      <div onclick="applyQuickKpi('interesting_new')" class="cursor-pointer bg-gradient-to-br from-amber-500/15 to-orange-500/5 hover:from-amber-500/25 border border-amber-500/40 rounded-2xl p-3.5 transition">
+      <div onclick="applyQuickKpi('interesting_new')" class="cursor-pointer bg-gradient-to-br from-amber-500/25 to-sky-300/5 hover:from-amber-500/35 border border-amber-500/40 rounded-2xl p-3.5 transition">
         <div class="flex items-center justify-between">
           <span class="text-[11px] text-amber-300 font-bold">🔥 Novidades Relevantes</span>
           <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">NOVO</span>
@@ -225,10 +321,10 @@
     </section>
 
     <!-- BARRA DE FILTROS -->
-    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+    <section class="bg-slate-900/90 border border-slate-700/70 rounded-2xl p-3 sm:p-4 space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <!-- Abas de Classificação -->
-        <div class="flex flex-wrap items-center gap-1.5" id="tierTabs">
+        <div class="scroll-x flex items-center gap-1.5 -mx-1 px-1 pb-1 sm:flex-wrap sm:mx-0 sm:px-0 sm:pb-0" id="tierTabs">
           <button data-tier="all" onclick="setTierFilter('all')" class="tier-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition">
             Todos os Resultados
           </button>
@@ -244,28 +340,28 @@
         </div>
 
         <!-- Filtro dos 10 Portais dos EUA -->
-        <div class="flex flex-wrap items-center gap-1" id="sourceTabs">
-          <button data-source="all" onclick="setSourceFilter('all')" class="src-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-700 text-white">Todos (10)</button>
-          <button data-source="ebay" onclick="setSourceFilter('ebay')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">eBay Motors</button>
-          <button data-source="classiccars" onclick="setSourceFilter('classiccars')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">ClassicCars</button>
-          <button data-source="autotrader" onclick="setSourceFilter('autotrader')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">AutoTrader</button>
-          <button data-source="hemmings" onclick="setSourceFilter('hemmings')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Hemmings</button>
-          <button data-source="bringatrailer" onclick="setSourceFilter('bringatrailer')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Bring a Trailer</button>
-          <button data-source="classiccom" onclick="setSourceFilter('classiccom')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Classic.com</button>
-          <button data-source="carscom" onclick="setSourceFilter('carscom')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Cars.com</button>
-          <button data-source="cargurus" onclick="setSourceFilter('cargurus')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">CarGurus</button>
-          <button data-source="streetside" onclick="setSourceFilter('streetside')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Streetside</button>
-          <button data-source="carsandbids" onclick="setSourceFilter('carsandbids')" class="src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white">Cars & Bids</button>
+        <div class="scroll-x flex items-center gap-1.5 -mx-1 px-1 pb-1 sm:flex-wrap sm:mx-0 sm:px-0 sm:pb-0" id="sourceTabs">
+          <button data-source="all" onclick="setSourceFilter('all')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-600 text-white border border-slate-300/40">Todos (10)</button>
+          <button data-source="ebay" onclick="setSourceFilter('ebay')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">eBay Motors</button>
+          <button data-source="classiccars" onclick="setSourceFilter('classiccars')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">ClassicCars</button>
+          <button data-source="autotrader" onclick="setSourceFilter('autotrader')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">AutoTrader</button>
+          <button data-source="hemmings" onclick="setSourceFilter('hemmings')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Hemmings</button>
+          <button data-source="bringatrailer" onclick="setSourceFilter('bringatrailer')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Bring a Trailer</button>
+          <button data-source="classiccom" onclick="setSourceFilter('classiccom')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Classic.com</button>
+          <button data-source="carscom" onclick="setSourceFilter('carscom')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Cars.com</button>
+          <button data-source="cargurus" onclick="setSourceFilter('cargurus')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">CarGurus</button>
+          <button data-source="streetside" onclick="setSourceFilter('streetside')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Streetside</button>
+          <button data-source="carsandbids" onclick="setSourceFilter('carsandbids')" class="src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white">Cars & Bids</button>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-800/80">
-        <div>
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-800/80">
+        <div class="col-span-2 lg:col-span-1">
           <input id="searchInput" type="text" oninput="debounceLoadListings()" placeholder="Filtrar nos resultados (cidade, versão, motor)..."
             class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none" />
         </div>
 
-        <div>
+        <div class="col-span-2 sm:col-span-1">
           <select id="priceFilter" onchange="loadListings()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
             <option value="all">💵 Preço: Todos</option>
             <option value="in_budget">✅ Dentro da Faixa Ideal</option>
@@ -274,7 +370,7 @@
           </select>
         </div>
 
-        <div>
+        <div class="col-span-2 sm:col-span-1">
           <select id="distanceFilter" onchange="loadListings()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
             <option value="">📍 Distância da Flórida: Todas</option>
             <option value="250">🌴 Até 250 milhas (Flórida)</option>
@@ -284,7 +380,7 @@
           </select>
         </div>
 
-        <div>
+        <div class="col-span-2 sm:col-span-1">
           <select id="sortSelect" onchange="loadListings()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
             <option value="score">⭐ Ordenar: Maior Relevância (Score)</option>
             <option value="distance_asc">📍 Mais Próximos de Deerfield Beach, FL</option>
@@ -294,7 +390,7 @@
           </select>
         </div>
 
-        <div class="flex items-center justify-between gap-2 px-1">
+        <div class="col-span-2 sm:col-span-1 flex items-center justify-between gap-2 px-1">
           <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
             <input id="onlyFavCheckbox" type="checkbox" onchange="loadListings()" class="rounded bg-slate-950 border-slate-700 text-amber-500 focus:ring-0" />
             <span>⭐ Só Favoritos</span>
@@ -305,7 +401,7 @@
     </section>
 
     <!-- GRADE DE VEÍCULOS -->
-    <section id="listingsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <section id="listingsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
     </section>
 
   </main>
@@ -313,7 +409,7 @@
   <!-- ================================================================= -->
   <!-- MODAL 1: CRIAR / EDITAR PESQUISA DE VEÍCULO & AGENDAMENTO         -->
   <!-- ================================================================= -->
-  <div id="watchlistModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+  <div id="watchlistModal" class="modal-shell fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
@@ -323,16 +419,19 @@
         <button onclick="closeWatchlistModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
       </div>
 
-      <!-- Exemplos Rápidos Opcionais -->
-      <div class="mt-3">
-        <span class="text-[11px] text-slate-400 font-semibold block mb-1.5">⚡ Preenchimento Rápido Opcional (ou digite qualquer veículo abaixo):</span>
-        <div class="flex flex-wrap gap-1.5">
-          <button type="button" onclick="applyPreset('eureka')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30">1960 Cadillac Eureka</button>
-          <button type="button" onclick="applyPreset('mustang')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1967 Ford Mustang Fastback</button>
-          <button type="button" onclick="applyPreset('belair')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1957 Chevrolet Bel Air</button>
-          <button type="button" onclick="applyPreset('corvette')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1963 Chevrolet Corvette C2</button>
-          <button type="button" onclick="applyPreset('porsche')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1972 Porsche 911</button>
-        </div>
+      <!-- Exemplos Rápidos Opcionais & Link das Regras -->
+      <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <span class="text-[11px] text-slate-300 font-semibold">⚡ Preenchimento Rápido Padronizado:</span>
+        <button type="button" onclick="openPortalRulesModal()" class="text-[11px] px-2.5 py-1 rounded-lg bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-500/50 font-medium transition">
+          🔍 Hierarquia & Regras dos 10 Portais
+        </button>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        <button type="button" onclick="applyPreset('eureka')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30">1960 Cadillac Eureka</button>
+        <button type="button" onclick="applyPreset('mustang')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1967 Ford Mustang Fastback</button>
+        <button type="button" onclick="applyPreset('belair')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1957 Chevrolet Bel Air</button>
+        <button type="button" onclick="applyPreset('corvette')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1963 Chevrolet Corvette C2</button>
+        <button type="button" onclick="applyPreset('porsche')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1972 Porsche 911</button>
       </div>
 
       <form onsubmit="saveWatchlistForm(event)" class="space-y-4 mt-4 text-xs">
@@ -355,16 +454,43 @@
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
           </div>
 
+          <!-- SELETOR DEPENDENTE 1: MARCA PADRONIZADA -->
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">Marca (Make)</label>
-            <input id="wlMake" type="text" required placeholder="Ex: Cadillac, Ford, Chevrolet, Porsche..."
-              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-slate-200 font-semibold">1. Marca (Make)</label>
+              <span class="text-[10px] text-amber-400 font-mono">1º Nível Taxonomia</span>
+            </div>
+            <select id="wlMakeSelect" onchange="onTaxonomyMakeChange()" required
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-medium focus:border-amber-400 focus:ring-1 focus:ring-amber-400">
+              <option value="">-- Carregando Marcas... --</option>
+            </select>
+            <input id="wlMakeCustom" type="text" oninput="onCustomMakeInput()" placeholder="Digite a marca personalizada..."
+              class="w-full bg-slate-950 border border-amber-500/70 rounded-xl px-3 py-2 text-white mt-1.5 hidden" />
+            <input type="hidden" id="wlMake" />
           </div>
 
+          <!-- SELETOR DEPENDENTE 2: MODELO VÁLIDO CARREGADO DINAMICAMENTE -->
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">Modelo Específico</label>
-            <input id="wlModelPrimary" type="text" required placeholder="Ex: Eureka, Mustang, Bel Air, 911..."
-              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-slate-200 font-semibold">2. Modelo Válido (Model)</label>
+              <span class="text-[10px] text-amber-400 font-mono">2º Nível Dependente</span>
+            </div>
+            <select id="wlModelSelect" onchange="onTaxonomyModelChange()" disabled required
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-medium focus:border-amber-400 focus:ring-1 focus:ring-amber-400 disabled:opacity-40 disabled:cursor-not-allowed">
+              <option value="">-- Selecione uma marca primeiro --</option>
+            </select>
+            <input id="wlModelCustom" type="text" oninput="onCustomModelInput()" placeholder="Digite o modelo específico..."
+              class="w-full bg-slate-950 border border-amber-500/70 rounded-xl px-3 py-2 text-white mt-1.5 hidden" />
+            <input type="hidden" id="wlModelPrimary" />
+          </div>
+
+          <!-- SUGESTÕES RÁPIDAS DE VERSÕES / TRIMS SUGERIDOS -->
+          <div id="wlVariantsBox" class="sm:col-span-2 hidden bg-slate-900/90 border border-slate-700/80 rounded-xl p-3">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[11px] font-bold text-slate-200">💡 3. Versões & Trims Sugeridos (clique para alternar nas palavras-chave):</span>
+              <span id="wlYearSuggestionBadge" class="text-amber-400 font-mono text-[10px] bg-amber-950/60 border border-amber-600/40 px-2 py-0.5 rounded-full"></span>
+            </div>
+            <div id="wlVariantPills" class="flex flex-wrap gap-1.5"></div>
           </div>
 
           <div class="sm:col-span-2">
@@ -469,6 +595,12 @@
           </div>
         </div>
 
+        <!-- Alerta de Inconsistência de Dados (Validação Prévia do Formulário) -->
+        <div id="wlConsistencyAlert" class="hidden p-3 bg-red-950/80 border border-red-500/80 rounded-xl text-red-200 text-xs flex items-center gap-2">
+          <span class="text-base">⚠️</span>
+          <div id="wlConsistencyAlertText" class="flex-1 font-medium"></div>
+        </div>
+
         <div class="flex items-center justify-between pt-2">
           <button id="btnDeleteWatchlist" type="button" onclick="deleteCurrentWatchlist()" class="text-rose-400 hover:underline hidden">
             🗑️ Excluir esta pesquisa
@@ -487,7 +619,7 @@
   <!-- ================================================================= -->
   <!-- MODAL 2 (EXCLUSIVO RAFAEL): AUDITORIA DE FALHAS, E-MAIL & PERFIS  -->
   <!-- ================================================================= -->
-  <div id="partnersModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+  <div id="partnersModal" class="modal-shell fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-6 shadow-2xl">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
@@ -612,7 +744,7 @@
   <!-- ================================================================= -->
   <!-- MODAL 3: ENVIAR RELATÓRIO POR E-MAIL                              -->
   <!-- ================================================================= -->
-  <div id="sendAlertModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+  <div id="sendAlertModal" class="modal-shell fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-xs">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
@@ -659,7 +791,7 @@
   <!-- ================================================================= -->
   <!-- MODAL 4: SIMULADOR DE IMPORTAÇÃO EUA -> BRASIL (POR VEÍCULO)      -->
   <!-- ================================================================= -->
-  <div id="importCalcModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+  <div id="importCalcModal" class="modal-shell fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-xs">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
@@ -700,6 +832,30 @@
     </div>
   </div>
 
+  <!-- ================================================================= -->
+  <!-- MODAL 5: HIERARQUIA DE BUSCA & REGRAS DOS 10 PRINCIPAIS PORTAIS    -->
+  <!-- ================================================================= -->
+  <div id="portalRulesModal" class="modal-shell fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col p-6 shadow-2xl space-y-4 text-xs">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div>
+          <span class="text-[10px] uppercase tracking-widest text-amber-400 font-bold">Engenharia Reversa • DevTools Network Analysis</span>
+          <h2 class="text-base font-extrabold text-white">Hierarquia de Filtros & Mapeamento dos 10 Principais Portais dos EUA</h2>
+        </div>
+        <button onclick="closePortalRulesModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <div class="overflow-y-auto flex-1 space-y-3 pr-1" id="portalRulesListContainer">
+        <!-- Preenchido dinamicamente via JS a partir de /api/taxonomy/portals -->
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+        <span class="text-slate-400 text-[11px]">Os seletores dependentes do app formatam automaticamente os identificadores aceitos por cada portal.</span>
+        <button type="button" onclick="closePortalRulesModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl bg-slate-900 border border-amber-500/50 text-xs font-semibold text-white shadow-2xl hidden"></div>
 
@@ -710,6 +866,8 @@
     let allPartners = [];
     let allWatchlists = [];
     let activeWatchlistId = null;
+    let taxonomyMakes = [];
+    let portalRules = [];
     let systemSettings = {};
     let currentTierFilter = 'all';
     let currentSourceFilter = 'all';
@@ -725,7 +883,37 @@
       setTimeout(() => t.classList.add('hidden'), 4200);
     }
 
+    function escapeHtml(val) {
+      return String(val ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function safeUrl(url) {
+      const raw = String(url ?? '').trim();
+      if (/^https?:\/\//i.test(raw)) return escapeHtml(raw);
+      return '#';
+    }
+
+    // Cores de avatar no padrão Ford (azul / prata). Converte as cores antigas salvas no banco.
+    function fordAvatarColor(c) {
+      const map = { '#f59e0b': '#1f64d6', '#38bdf8': '#c4ccd9' };
+      return map[(c || '#f59e0b').toLowerCase()] || c || '#1f64d6';
+    }
+    function isLightColor(hex) {
+      const h = (hex || '').replace('#', '');
+      if (h.length !== 6) return false;
+      const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+      return (0.299 * r + 0.587 * g + 0.114 * b) > 160;
+    }
+
     function apiHeaders() {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
       const h = { 'Content-Type': 'application/json' };
       if (authToken) h['Authorization'] = `Bearer ${authToken}`;
       return h;
@@ -741,30 +929,57 @@
     // =====================================================================
     function quickFillUser(username) {
       document.getElementById('loginUsername').value = username;
-      document.getElementById('loginPassword').value = username === 'rafael' ? '' : '123456';
+      document.getElementById('loginPassword').value = '';
       document.getElementById('loginPassword').focus();
     }
 
     function showLoginModal() {
-      document.getElementById('loginOverlay').classList.remove('hidden');
+      const overlay = document.getElementById('loginOverlay');
+      if (overlay) {
+        overlay.classList.remove('hidden');
+        const pass = document.getElementById('loginPassword');
+        if (pass) pass.focus();
+      }
     }
 
     async function checkAuthOnLoad() {
+      try {
+        localStorage.removeItem('cch_settings_backup');
+        localStorage.removeItem('cch_partners_backup');
+      } catch (e) {}
+
       if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+
+      if (!authToken) {
+        updateUserHeaderUI();
         showLoginModal();
-        return;
+        return false;
       }
       try {
         const res = await fetch('/api/auth/me', { headers: apiHeaders(), cache: 'no-store' });
         if (!res.ok) {
+          authToken = '';
+          currentPartner = null;
+          localStorage.removeItem('cch_token');
+          updateUserHeaderUI();
           showLoginModal();
-          return;
+          return false;
         }
         const data = await res.json();
         currentPartner = data.partner;
         updateUserHeaderUI();
+        const overlay = document.getElementById('loginOverlay');
+        if (overlay) overlay.classList.add('hidden');
+        return true;
       } catch (e) {
+        authToken = '';
+        currentPartner = null;
+        localStorage.removeItem('cch_token');
+        updateUserHeaderUI();
         showLoginModal();
+        return false;
       }
     }
 
@@ -799,23 +1014,46 @@
       }
     }
 
+    function logoutUser() {
+      authToken = '';
+      currentPartner = null;
+      localStorage.removeItem('cch_token');
+      updateUserHeaderUI();
+      showLoginModal();
+      showToast('Você saiu da plataforma. Faça login para continuar.');
+    }
+
     function updateUserHeaderUI() {
-      if (!currentPartner) return;
       const av = document.getElementById('partnerAvatar');
       const nm = document.getElementById('partnerNameDisplay');
+      const btn = document.getElementById('partnerAuthBtn');
+      if (!currentPartner) {
+        if (av) {
+          av.textContent = '?';
+          av.style.backgroundColor = '#334155';
+          av.style.color = '#cbd5e1';
+        }
+        if (nm) nm.textContent = 'Não autenticado';
+        if (btn) btn.textContent = 'Fazer Login';
+        const adminBtns = [document.getElementById('btnAdminAudit'), document.getElementById('btnAdminAuditM')];
+        adminBtns.forEach(b => { if (b) { b.classList.add('hidden'); b.classList.remove('flex'); } });
+        return;
+      }
       const initials = currentPartner.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-      av.textContent = initials;
-      av.style.backgroundColor = currentPartner.avatar_color || '#f59e0b';
-      nm.textContent = currentPartner.name;
+      if (av) {
+        av.textContent = initials;
+        av.style.backgroundColor = fordAvatarColor(currentPartner.avatar_color);
+        av.style.color = isLightColor(fordAvatarColor(currentPartner.avatar_color)) ? '#030f27' : '#ffffff';
+      }
+      if (nm) nm.textContent = currentPartner.name;
+      if (btn) btn.textContent = 'Trocar Conta / Sair';
 
       // Exibe o painel de Auditoria & Config E-mail EXCLUSIVAMENTE para o Rafael Campos
-      const adminBtn = document.getElementById('btnAdminAudit');
+      const adminBtns = [document.getElementById('btnAdminAudit'), document.getElementById('btnAdminAuditM')];
       if (isRafaelAdmin()) {
-        adminBtn.classList.remove('hidden');
-        adminBtn.classList.add('flex');
+        adminBtns.forEach(b => { if (b) { b.classList.remove('hidden'); b.classList.add('flex'); } });
       } else {
-        adminBtn.classList.add('hidden');
-        adminBtn.classList.remove('flex');
+        adminBtns.forEach(b => { if (b) { b.classList.add('hidden'); b.classList.remove('flex'); } });
         closePartnersModal();
       }
     }
@@ -824,54 +1062,35 @@
     // DASHBOARD & LISTINGS
     // =====================================================================
     async function loadDashboard() {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken) {
+        showLoginModal();
+        return;
+      }
       const url = activeWatchlistId ? `/api/dashboard?watchlist_id=${activeWatchlistId}` : '/api/dashboard';
       const res = await fetch(url, { headers: apiHeaders(), cache: 'no-store' });
+      if (res.status === 401) {
+        authToken = '';
+        currentPartner = null;
+        localStorage.removeItem('cch_token');
+        updateUserHeaderUI();
+        showLoginModal();
+        return;
+      }
+        showLoginModal();
+        return;
+      }
       const data = await res.json();
 
       allPartners = data.partners || [];
       allWatchlists = data.watchlists || [];
       systemSettings = data.settings || {};
 
-      // Sincroniza backup local de e-mail/configurações caso o container em nuvem tenha reiniciado
-      try {
-        const localPartnersRaw = localStorage.getItem('cch_partners_backup');
-        if (localPartnersRaw) {
-          const localPartners = JSON.parse(localPartnersRaw);
-          for (const p of allPartners) {
-            const b = localPartners[p.id];
-            if (b && !p.email && b.email) {
-              p.email = b.email;
-              fetch(`/api/partners/${p.id}`, {
-                method: 'PUT',
-                headers: apiHeaders(),
-                body: JSON.stringify({
-                  name: p.name,
-                  role: p.role || '',
-                  whatsapp_phone: '',
-                  email: p.email,
-                  notify_whatsapp: 0,
-                  notify_email: p.notify_email ?? 1,
-                  avatar_color: p.avatar_color || '#f59e0b'
-                })
-              }).catch(() => {});
-            }
-          }
-        }
-        const localSettingsRaw = localStorage.getItem('cch_settings_backup');
-        if (localSettingsRaw) {
-          const localSettings = JSON.parse(localSettingsRaw);
-          let syncSettings = false;
-          for (const k of ['smtp_host', 'smtp_user', 'smtp_password']) {
-            if (!systemSettings[k] && localSettings[k]) {
-              systemSettings[k] = localSettings[k];
-              syncSettings = true;
-            }
-          }
-          if (syncSettings) {
-            fetch('/api/settings', { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(systemSettings) }).catch(() => {});
-          }
-        }
-      } catch (e) {}
+      if (taxonomyMakes.length === 0) {
+        await loadTaxonomy();
+      }
 
       // Se a busca ativa não existe mais, mantém null (em branco até o usuário selecionar ou criar)
       if (activeWatchlistId && !allWatchlists.some(w => w.id === activeWatchlistId)) {
@@ -882,8 +1101,8 @@
       const editBtn = document.getElementById('btnEditWatchlist');
       const blankOpt = `<option value="" ${!activeWatchlistId ? 'selected' : ''}>— Selecione uma pesquisa ou clique em "+ Nova Pesquisa" —</option>`;
       const wlOpts = allWatchlists.map(w => {
-        const clientTag = w.client_name ? ` [${w.client_name}]` : '';
-        return `<option value="${w.id}" ${w.id === activeWatchlistId ? 'selected' : ''}>${w.name}${clientTag}</option>`;
+        const clientTag = w.client_name ? ` [${escapeHtml(w.client_name)}]` : '';
+        return `<option value="${Number(w.id)}" ${w.id === activeWatchlistId ? 'selected' : ''}>${escapeHtml(w.name)}${clientTag}</option>`;
       }).join('');
       sel.innerHTML = blankOpt + wlOpts;
 
@@ -910,7 +1129,7 @@
         return;
       }
 
-      document.getElementById('wlOwnerBadge').innerHTML = `👤 Criado por: <strong class="text-white ml-1">${activeWl.owner_name || 'Rafael Campos'}</strong>`;
+      document.getElementById('wlOwnerBadge').innerHTML = `👤 Criado por: <strong class="text-white ml-1">${escapeHtml(activeWl.owner_name || 'Rafael Campos')}</strong>`;
       document.getElementById('wlClientBadge').textContent = `📋 Demanda: ${activeWl.client_name || 'Pesquisa Sob Demanda'}`;
 
       let schedText = 'Manual';
@@ -965,9 +1184,9 @@
       currentSourceFilter = src;
       document.querySelectorAll('.src-btn').forEach(btn => {
         if (btn.dataset.source === src) {
-          btn.className = 'src-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-700 text-white';
+          btn.className = 'src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-600 text-white border border-slate-300/40';
         } else {
-          btn.className = 'src-btn px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-400 hover:text-white';
+          btn.className = 'src-btn px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 text-slate-300 hover:text-white';
         }
       });
       loadListings();
@@ -1028,6 +1247,7 @@
       params.set('sort_by', document.getElementById('sortSelect').value);
 
       const res = await fetch(`/api/listings?${params.toString()}`, { headers: apiHeaders(), cache: 'no-store' });
+      if (!res.ok) return;
       const data = await res.json();
       currentListings = data.items || [];
       document.getElementById('resultsCountLabel').textContent = `${data.count || 0} veículo(s)`;
@@ -1080,16 +1300,17 @@
 
       grid.innerHTML = items.map((it, idx) => {
         const srcBadge = sourceColors[it.source] || 'bg-slate-800 text-slate-300';
-        const scoreColor = it.match_score >= 70 ? 'bg-emerald-500 text-slate-950' : (it.match_score >= 52 ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-slate-200');
+        const scoreVal = Number(it.match_score) || 0;
+        const scoreColor = scoreVal >= 70 ? 'bg-emerald-500 text-slate-950' : (scoreVal >= 52 ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-slate-200');
         const imp = it.import_estimate;
-        const brBadge = imp ? `<span class="text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-lg">🚢 ${imp.short_display}</span>` : '';
+        const brBadge = imp ? `<span class="text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-lg">🚢 ${escapeHtml(imp.short_display)}</span>` : '';
         const newBadge = it.is_new ? `<span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-400 text-slate-950">NOVO</span>` : '';
         const distBadge = it.distance_miles != null
           ? `<span class="text-[11px] font-semibold ${it.distance_miles <= 350 ? 'text-emerald-400' : 'text-slate-300'}">📍 ${Math.round(it.distance_miles)} mi de Deerfield Beach</span>`
-          : `<span class="text-[11px] text-slate-400">📍 ${it.location || 'EUA'}</span>`;
+          : `<span class="text-[11px] text-slate-400">📍 ${escapeHtml(it.location || 'EUA')}</span>`;
 
         const imgHtml = it.image_url
-          ? `<img src="${it.image_url}" alt="${it.title}" loading="lazy" onerror="this.src='https://placehold.co/600x400/0f172a/f59e0b?text=Ve%C3%ADculo+EUA'" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300" />`
+          ? `<img src="${safeUrl(it.image_url)}" alt="${escapeHtml(it.title)}" loading="lazy" onerror="this.src='https://placehold.co/600x400/08183c/8fb8ff?text=Ve%C3%ADculo+EUA'" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300" />`
           : `<div class="w-full h-48 bg-slate-950 flex items-center justify-center text-slate-600 text-xs">Sem Foto Disponível</div>`;
 
         return `
@@ -1098,40 +1319,40 @@
               <div class="relative overflow-hidden bg-slate-950">
                 ${imgHtml}
                 <div class="absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5">
-                  <span class="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-md border backdrop-blur-md ${srcBadge}">${it.source}</span>
+                  <span class="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-md border backdrop-blur-md ${srcBadge}">${escapeHtml(it.source)}</span>
                   ${newBadge}
                 </div>
                 <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5">
-                  <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-md shadow ${scoreColor}">Score ${it.match_score}</span>
+                  <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-md shadow ${scoreColor}">Score ${scoreVal}</span>
                 </div>
                 <div class="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between">
                   <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-slate-950/90 text-slate-100 border border-slate-700/80 backdrop-blur-md">
-                    ${it.match_tier_label}
+                    ${escapeHtml(it.match_tier_label)}
                   </span>
                 </div>
               </div>
 
               <div class="p-4 space-y-2.5">
-                <h3 class="font-extrabold text-white text-sm leading-snug line-clamp-2" title="${it.title}">
-                  ${it.title}
+                <h3 class="font-extrabold text-white text-sm leading-snug line-clamp-2" title="${escapeHtml(it.title)}">
+                  ${escapeHtml(it.title)}
                 </h3>
 
                 <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-                  <div class="text-lg font-black text-emerald-400">${it.price_display || 'Sob consulta'}</div>
+                  <div class="text-lg font-black text-emerald-400">${escapeHtml(it.price_display || 'Sob consulta')}</div>
                   ${brBadge}
                 </div>
 
                 <div class="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-800/70">
                   ${distBadge}
-                  <span class="text-[11px] text-slate-500 truncate max-w-[130px]">${it.location || ''}</span>
+                  <span class="text-[11px] text-slate-500 truncate max-w-[130px]">${escapeHtml(it.location || '')}</span>
                 </div>
 
                 <div class="flex flex-wrap gap-1 pt-1">
-                  ${(it.match_reasons || []).slice(0, 3).map(r => `<span class="text-[10px] px-2 py-0.5 rounded bg-slate-800/90 text-slate-300">${r}</span>`).join('')}
+                  ${(it.match_reasons || []).slice(0, 3).map(r => `<span class="text-[10px] px-2 py-0.5 rounded bg-slate-800/90 text-slate-300">${escapeHtml(r)}</span>`).join('')}
                 </div>
 
                 <div class="pt-1">
-                  <input type="text" value="${(it.notes || '').replace(/"/g, '&quot;')}"
+                  <input type="text" value="${escapeHtml(it.notes || '')}"
                     placeholder="📝 Adicionar observação sobre este veículo..."
                     onblur="saveListingNote('${encodeURIComponent(it.id)}', this.value)"
                     class="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-slate-200 focus:border-amber-500 focus:outline-none" />
@@ -1158,7 +1379,7 @@
                 </button>
               </div>
 
-              <a href="${it.url}" target="_blank" rel="noopener"
+              <a href="${safeUrl(it.url)}" target="_blank" rel="noopener noreferrer"
                 class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">
                 Abrir Anúncio ↗
               </a>
@@ -1205,17 +1426,37 @@
     }
 
     async function triggerScanNow() {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        showLoginModal();
+        showToast('Faça login com seu usuário para realizar a varredura.');
+        return;
+      }
       if (!activeWatchlistId) {
         openWatchlistModal(true);
         return;
       }
       const btn = document.getElementById('btnScanNow');
       const txt = document.getElementById('scanBtnText');
-      btn.disabled = true;
+      const btnM = document.getElementById('btnScanNowM');
+      const txtM = document.getElementById('scanBtnTextM');
+      btn.disabled = true; btnM.disabled = true;
       txt.textContent = 'Varrendo 10 Portais...';
+      txtM.textContent = 'Varrendo...';
       showToast('Iniciando varredura ao vivo nos 10 portais dos EUA...');
       try {
         const res = await fetch(`/api/scan/${activeWatchlistId}`, { method: 'POST', headers: apiHeaders() });
+        if (res.status === 401) {
+          authToken = '';
+          currentPartner = null;
+          localStorage.removeItem('cch_token');
+          updateUserHeaderUI();
+          showLoginModal();
+          showToast('Sessão expirada. Faça login novamente.');
+          return;
+        }
         const data = await res.json();
         if (!res.ok) {
           showToast(data.detail || 'Varredura em andamento.');
@@ -1226,8 +1467,9 @@
       } catch (e) {
         showToast('Erro durante a varredura.');
       } finally {
-        btn.disabled = false;
+        btn.disabled = false; btnM.disabled = false;
         txt.textContent = 'Varrer 10 Portais dos EUA';
+        txtM.textContent = 'Varrer';
       }
     }
 
@@ -1241,12 +1483,284 @@
       document.getElementById('fixedHoursBox').classList.toggle('hidden', mode !== 'fixed_hours');
     }
 
+    // =====================================================================
+    // TAXONOMIA, SELETORES DEPENDENTES & ENGENHARIA REVERSA DOS 10 PORTAIS
+    // =====================================================================
+    async function loadTaxonomy() {
+      try {
+        const [resTax, resPortals] = await Promise.all([
+          fetch('/api/taxonomy', { headers: apiHeaders(), cache: 'no-store' }),
+          fetch('/api/taxonomy/portals', { headers: apiHeaders(), cache: 'no-store' })
+        ]);
+        if (resTax.ok) {
+          const d = await resTax.json();
+          taxonomyMakes = d.makes || [];
+          populateMakeDropdown();
+        }
+        if (resPortals.ok) {
+          const dp = await resPortals.json();
+          portalRules = dp.portals || [];
+          renderPortalRulesModal();
+        }
+      } catch (err) {
+        console.warn('Erro ao carregar taxonomia:', err);
+      }
+    }
+
+    function populateMakeDropdown(selectedMake = '') {
+      const sel = document.getElementById('wlMakeSelect');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">-- Selecione uma Marca Padronizada --</option>' +
+        taxonomyMakes.map(m => `<option value="${escapeHtml(m.canonical_name)}">${escapeHtml(m.canonical_name)} (${escapeHtml(m.country)})</option>`).join('') +
+        '<option value="__custom__">➕ [ Outro / Digitar Marca Personalizada... ]</option>';
+      if (selectedMake) {
+        const found = taxonomyMakes.find(m => m.canonical_name.toLowerCase() === selectedMake.toLowerCase());
+        if (found) {
+          sel.value = found.canonical_name;
+          document.getElementById('wlMake').value = found.canonical_name;
+          document.getElementById('wlMakeCustom').classList.add('hidden');
+        } else {
+          sel.value = '__custom__';
+          document.getElementById('wlMake').value = selectedMake;
+          document.getElementById('wlMakeCustom').value = selectedMake;
+          document.getElementById('wlMakeCustom').classList.remove('hidden');
+        }
+      }
+    }
+
+    function onTaxonomyMakeChange(targetModel = '') {
+      clearConsistencyError();
+      const sel = document.getElementById('wlMakeSelect');
+      const customInput = document.getElementById('wlMakeCustom');
+      const hiddenMake = document.getElementById('wlMake');
+      const modelSel = document.getElementById('wlModelSelect');
+      const modelCustom = document.getElementById('wlModelCustom');
+      const hiddenModel = document.getElementById('wlModelPrimary');
+      const variantsBox = document.getElementById('wlVariantsBox');
+
+      const val = sel.value;
+      if (val === '__custom__') {
+        customInput.classList.remove('hidden');
+        customInput.focus();
+        hiddenMake.value = customInput.value.trim();
+        modelSel.disabled = false;
+        modelSel.innerHTML = '<option value="__custom__">➕ [ Digitar Modelo Personalizado ]</option>';
+        modelSel.value = '__custom__';
+        modelCustom.classList.remove('hidden');
+        hiddenModel.value = modelCustom.value.trim();
+        variantsBox.classList.add('hidden');
+        return;
+      }
+
+      customInput.classList.add('hidden');
+      if (!val) {
+        hiddenMake.value = '';
+        modelSel.disabled = true;
+        modelSel.innerHTML = '<option value="">-- Selecione uma marca primeiro --</option>';
+        modelCustom.classList.add('hidden');
+        hiddenModel.value = '';
+        variantsBox.classList.add('hidden');
+        return;
+      }
+
+      hiddenMake.value = val;
+      const makeObj = taxonomyMakes.find(m => m.canonical_name.toLowerCase() === val.toLowerCase());
+      const models = (makeObj && makeObj.models) ? makeObj.models : [];
+
+      modelSel.disabled = false;
+      modelSel.innerHTML = '<option value="">-- Selecione um Modelo Válido --</option>' +
+        models.map(m => `<option value="${escapeHtml(m.canonical_name)}">${escapeHtml(m.canonical_name)} (${escapeHtml(m.year_min_typical)}–${escapeHtml(m.year_max_typical)})</option>`).join('') +
+        '<option value="__custom__">➕ [ Outro / Digitar Modelo Personalizado... ]</option>';
+
+      if (targetModel) {
+        const foundMod = models.find(m => m.canonical_name.toLowerCase() === targetModel.toLowerCase());
+        if (foundMod) {
+          modelSel.value = foundMod.canonical_name;
+          modelCustom.classList.add('hidden');
+          hiddenModel.value = foundMod.canonical_name;
+          onTaxonomyModelChange();
+        } else {
+          modelSel.value = '__custom__';
+          modelCustom.classList.remove('hidden');
+          modelCustom.value = targetModel;
+          hiddenModel.value = targetModel;
+          variantsBox.classList.add('hidden');
+        }
+      } else {
+        modelCustom.classList.add('hidden');
+        hiddenModel.value = '';
+        variantsBox.classList.add('hidden');
+      }
+    }
+
+    function onTaxonomyModelChange() {
+      clearConsistencyError();
+      const makeSel = document.getElementById('wlMakeSelect');
+      const modelSel = document.getElementById('wlModelSelect');
+      const modelCustom = document.getElementById('wlModelCustom');
+      const hiddenModel = document.getElementById('wlModelPrimary');
+      const variantsBox = document.getElementById('wlVariantsBox');
+      const yearBadge = document.getElementById('wlYearSuggestionBadge');
+
+      const val = modelSel.value;
+      if (val === '__custom__') {
+        modelCustom.classList.remove('hidden');
+        modelCustom.focus();
+        hiddenModel.value = modelCustom.value.trim();
+        variantsBox.classList.add('hidden');
+        return;
+      }
+
+      modelCustom.classList.add('hidden');
+      if (!val) {
+        hiddenModel.value = '';
+        variantsBox.classList.add('hidden');
+        return;
+      }
+
+      hiddenModel.value = val;
+
+      const makeObj = taxonomyMakes.find(m => m.canonical_name.toLowerCase() === makeSel.value.toLowerCase());
+      const modelObj = makeObj ? (makeObj.models || []).find(m => m.canonical_name.toLowerCase() === val.toLowerCase()) : null;
+
+      if (modelObj) {
+        if (modelObj.year_min_typical && modelObj.year_max_typical) {
+          document.getElementById('wlYearMin').value = modelObj.year_min_typical;
+          document.getElementById('wlYearMax').value = modelObj.year_max_typical;
+          yearBadge.textContent = `Época de Ouro: ${modelObj.year_min_typical}–${modelObj.year_max_typical}`;
+        } else {
+          yearBadge.textContent = '';
+        }
+
+        if (isCreatingWatchlist) {
+          const currentTitle = document.getElementById('wlName').value.trim();
+          if (!currentTitle || currentTitle.startsWith(makeSel.value)) {
+            document.getElementById('wlName').value = `${makeObj.canonical_name} ${modelObj.canonical_name} ${modelObj.year_min_typical}–${modelObj.year_max_typical}`;
+          }
+        }
+
+        const variants = modelObj.common_variants || [];
+        if (variants.length > 0) {
+          variantsBox.classList.remove('hidden');
+          renderVariantPills(variants);
+        } else {
+          variantsBox.classList.add('hidden');
+        }
+      } else {
+        variantsBox.classList.add('hidden');
+      }
+    }
+
+    function renderVariantPills(variants) {
+      const container = document.getElementById('wlVariantPills');
+      const kwInput = document.getElementById('wlKeywords');
+      const currentKws = kwInput.value.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+
+      container.innerHTML = variants.map(v => {
+        const isActive = currentKws.includes(String(v).toLowerCase());
+        const activeClass = isActive
+          ? 'bg-amber-500 text-slate-950 font-extrabold border-amber-400 shadow-sm'
+          : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white';
+        return `<button type="button" data-variant="${escapeHtml(v)}" onclick="toggleVariantKeyword(this.dataset.variant)" class="text-[11px] px-2.5 py-1 rounded-lg border transition ${activeClass}">
+          ${isActive ? '✓ ' : '+ '}${escapeHtml(v)}
+        </button>`;
+      }).join('');
+    }
+
+    function toggleVariantKeyword(variant) {
+      if (!variant) return;
+      const kwInput = document.getElementById('wlKeywords');
+      let currentKws = kwInput.value.split(',').map(s => s.trim()).filter(Boolean);
+      const vLower = variant.toLowerCase();
+      const existingIdx = currentKws.findIndex(k => k.toLowerCase() === vLower);
+
+      if (existingIdx >= 0) {
+        currentKws.splice(existingIdx, 1);
+      } else {
+        currentKws.push(variant);
+      }
+      kwInput.value = currentKws.join(', ');
+
+      const makeObj = taxonomyMakes.find(m => m.canonical_name.toLowerCase() === document.getElementById('wlMakeSelect').value.toLowerCase());
+      const modelObj = makeObj ? (makeObj.models || []).find(m => m.canonical_name.toLowerCase() === document.getElementById('wlModelSelect').value.toLowerCase()) : null;
+      if (modelObj && modelObj.common_variants) {
+        renderVariantPills(modelObj.common_variants);
+      }
+    }
+
+    function onCustomMakeInput() {
+      document.getElementById('wlMake').value = document.getElementById('wlMakeCustom').value.trim();
+    }
+    function onCustomModelInput() {
+      document.getElementById('wlModelPrimary').value = document.getElementById('wlModelCustom').value.trim();
+    }
+
+    function showConsistencyError(msg) {
+      const alertBox = document.getElementById('wlConsistencyAlert');
+      const textEl = document.getElementById('wlConsistencyAlertText');
+      textEl.textContent = msg;
+      alertBox.classList.remove('hidden');
+      alertBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    function clearConsistencyError() {
+      const alertBox = document.getElementById('wlConsistencyAlert');
+      if (alertBox) alertBox.classList.add('hidden');
+    }
+
+    function openPortalRulesModal() {
+      renderPortalRulesModal();
+      document.getElementById('portalRulesModal').classList.remove('hidden');
+    }
+    function closePortalRulesModal() {
+      document.getElementById('portalRulesModal').classList.add('hidden');
+    }
+
+    function renderPortalRulesModal() {
+      const container = document.getElementById('portalRulesListContainer');
+      if (!container) return;
+      if (portalRules.length === 0) {
+        container.innerHTML = '<div class="text-slate-400 p-4 text-center">Carregando especificações de rede dos portais...</div>';
+        return;
+      }
+      container.innerHTML = portalRules.map(p => `
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 font-mono">${escapeHtml((p.portal_id || '').toUpperCase())}</span>
+              <span class="font-extrabold text-white text-sm">${escapeHtml(p.portal_name)}</span>
+            </div>
+            <span class="text-[11px] text-sky-400 font-mono">${escapeHtml(p.category_scope || 'Veículos Clássicos')}</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-[11px]">
+            <div>
+              <span class="text-slate-400 block font-semibold mb-0.5">Hierarquia Exata de Filtros:</span>
+              <span class="text-amber-200 font-medium">${escapeHtml(p.filter_hierarchy)}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block font-semibold mb-0.5">Tipo de Endpoint / Estrutura:</span>
+              <span class="text-slate-200 font-mono">${escapeHtml(p.endpoint_type)}</span>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 rounded-lg p-2.5 font-mono text-[11px] text-slate-300 break-all border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Parâmetros Enviados via Network / URL:</span>
+            ${escapeHtml(p.url_template)}
+          </div>
+
+          <div class="text-[11px] text-slate-300 bg-sky-950/30 border border-sky-800/40 rounded-lg p-2.5">
+            <strong class="text-sky-300">Regra de Engenharia Reversa:</strong> ${escapeHtml(p.notes)}
+          </div>
+        </div>
+      `).join('');
+    }
+
     function applyPreset(key) {
       const presets = {
         eureka: {
           name: 'Cadillac Eureka 1960 ($20k–$40k | Deerfield Beach)',
           make: 'Cadillac', model: 'Eureka',
-          kw: 'eureka, hearse, ambulance, commercial chassis, flower car, miller meteor, superior, funeral coach',
+          kw: 'eureka, hearse, ambulance, commercial chassis, flower car, funeral coach',
           ymin: 1960, ymax: 1960, pmin: 20000, pmax: 40000
         },
         mustang: {
@@ -1277,8 +1791,8 @@
       const p = presets[key];
       if (!p) return;
       document.getElementById('wlName').value = p.name;
-      document.getElementById('wlMake').value = p.make;
-      document.getElementById('wlModelPrimary').value = p.model;
+      populateMakeDropdown(p.make);
+      onTaxonomyMakeChange(p.model);
       document.getElementById('wlKeywords').value = p.kw;
       document.getElementById('wlYearMin').value = p.ymin;
       document.getElementById('wlYearMax').value = p.ymax;
@@ -1287,9 +1801,18 @@
     }
 
     function openWatchlistModal(createNew) {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        showLoginModal();
+        showToast('Faça login com seu usuário para criar ou editar pesquisas.');
+        return;
+      }
       isCreatingWatchlist = createNew;
+      clearConsistencyError();
       const ownerSel = document.getElementById('wlOwnerPartnerId');
-      ownerSel.innerHTML = allPartners.map(p => `<option value="${p.id}">${p.name} (${p.role})</option>`).join('');
+      ownerSel.innerHTML = allPartners.map(p => `<option value="${Number(p.id)}">${escapeHtml(p.name)} (${escapeHtml(p.role)})</option>`).join('');
 
       const delBtn = document.getElementById('btnDeleteWatchlist');
       if (createNew) {
@@ -1297,8 +1820,8 @@
         delBtn.classList.add('hidden');
         document.getElementById('wlName').value = '';
         document.getElementById('wlClientName').value = '';
-        document.getElementById('wlMake').value = '';
-        document.getElementById('wlModelPrimary').value = '';
+        populateMakeDropdown('');
+        onTaxonomyMakeChange('');
         document.getElementById('wlKeywords').value = '';
         document.getElementById('wlYearMin').value = 1960;
         document.getElementById('wlYearMax').value = 1970;
@@ -1322,8 +1845,8 @@
         delBtn.classList.remove('hidden');
         document.getElementById('wlName').value = wl.name || '';
         document.getElementById('wlClientName').value = wl.client_name || '';
-        document.getElementById('wlMake').value = wl.make || '';
-        document.getElementById('wlModelPrimary').value = wl.model_primary || '';
+        populateMakeDropdown(wl.make || '');
+        onTaxonomyMakeChange(wl.model_primary || '');
         document.getElementById('wlKeywords').value = wl.related_keywords || '';
         document.getElementById('wlYearMin').value = wl.year_min || 1960;
         document.getElementById('wlYearMax').value = wl.year_max || 1970;
@@ -1347,26 +1870,94 @@
 
     function closeWatchlistModal() {
       document.getElementById('watchlistModal').classList.add('hidden');
+      clearConsistencyError();
     }
 
     async function saveWatchlistForm(e) {
       e.preventDefault();
+      clearConsistencyError();
+
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        closeWatchlistModal();
+        showLoginModal();
+        showToast('Faça login com seu usuário para salvar a pesquisa.');
+        return;
+      }
+
+      const makeVal = document.getElementById('wlMake').value.trim();
+      const modelVal = document.getElementById('wlModelPrimary').value.trim();
+      const ymin = parseInt(document.getElementById('wlYearMin').value, 10);
+      const ymax = parseInt(document.getElementById('wlYearMax').value, 10);
+      const pmin = parseInt(document.getElementById('wlPriceMin').value, 10);
+      const pmax = parseInt(document.getElementById('wlPriceMax').value, 10);
+
+      // Validação Estrita de Consistência Pré-Envio
+      if (!makeVal) {
+        showConsistencyError('Selecione uma marca padronizada ou digite o nome da marca.');
+        document.getElementById('wlMakeSelect').focus();
+        return;
+      }
+      if (!modelVal) {
+        showConsistencyError('Selecione um modelo válido carregado para a marca ou digite o modelo específico.');
+        document.getElementById('wlModelSelect').focus();
+        return;
+      }
+      if (isNaN(ymin) || ymin < 1900 || ymin > 2026) {
+        showConsistencyError(`Ano inicial inválido (${ymin || 'em branco'}). Deve estar entre 1900 e 2026.`);
+        document.getElementById('wlYearMin').focus();
+        return;
+      }
+      if (isNaN(ymax) || ymax < 1900 || ymax > 2026) {
+        showConsistencyError(`Ano final inválido (${ymax || 'em branco'}). Deve estar entre 1900 e 2026.`);
+        document.getElementById('wlYearMax').focus();
+        return;
+      }
+      if (ymin > ymax) {
+        showConsistencyError(`Inconsistência Cronológica: O ano inicial (${ymin}) não pode ser maior que o ano final (${ymax}). Corrija a faixa de anos.`);
+        document.getElementById('wlYearMin').focus();
+        return;
+      }
+      if (isNaN(pmin) || pmin < 0) {
+        showConsistencyError('O preço mínimo alvo deve ser maior ou igual a zero.');
+        document.getElementById('wlPriceMin').focus();
+        return;
+      }
+      if (isNaN(pmax) || pmax < 0) {
+        showConsistencyError('O preço máximo alvo deve ser maior ou igual a zero.');
+        document.getElementById('wlPriceMax').focus();
+        return;
+      }
+      if (pmin > pmax) {
+        showConsistencyError(`Inconsistência Financeira: O preço mínimo ($ ${pmin.toLocaleString('en-US')}) não pode ser maior que o preço máximo ($ ${pmax.toLocaleString('en-US')}).`);
+        document.getElementById('wlPriceMin').focus();
+        return;
+      }
+
+      let titleVal = document.getElementById('wlName').value.trim();
+      if (!titleVal) {
+        titleVal = `${makeVal} ${modelVal} ${ymin}${ymin !== ymax ? '–' + ymax : ''}`;
+        document.getElementById('wlName').value = titleVal;
+      }
+
       const schedMode = document.getElementById('wlScheduleMode').value;
       const runsVal = schedMode === 'times_per_week'
         ? parseInt(document.getElementById('wlRunsPerWeek').value, 10)
         : parseInt(document.getElementById('wlRunsPerDay').value, 10);
 
       const payload = {
-        name: document.getElementById('wlName').value.trim(),
+        name: titleVal,
         client_name: document.getElementById('wlClientName').value.trim(),
         owner_partner_id: parseInt(document.getElementById('wlOwnerPartnerId').value, 10),
-        make: document.getElementById('wlMake').value.trim(),
-        model_primary: document.getElementById('wlModelPrimary').value.trim(),
+        make: makeVal,
+        model_primary: modelVal,
         related_keywords: document.getElementById('wlKeywords').value.trim(),
-        year_min: parseInt(document.getElementById('wlYearMin').value, 10),
-        year_max: parseInt(document.getElementById('wlYearMax').value, 10),
-        price_min: parseInt(document.getElementById('wlPriceMin').value, 10),
-        price_max: parseInt(document.getElementById('wlPriceMax').value, 10),
+        year_min: ymin,
+        year_max: ymax,
+        price_min: pmin,
+        price_max: pmax,
         target_city: document.getElementById('wlCity').value.trim(),
         target_state: document.getElementById('wlState').value.trim().toUpperCase(),
         target_zip: document.getElementById('wlZip').value.trim(),
@@ -1384,24 +1975,68 @@
 
       const url = isCreatingWatchlist ? '/api/watchlists' : `/api/watchlists/${activeWatchlistId}`;
       const method = isCreatingWatchlist ? 'POST' : 'PUT';
-      const res = await fetch(url, { method, headers: apiHeaders(), body: JSON.stringify(payload) });
-      const saved = await res.json();
-      if (res.ok) {
-        activeWatchlistId = saved.id;
-        closeWatchlistModal();
-        await loadDashboard();
-        if (isCreatingWatchlist) {
-          await triggerScanNow();
-        } else {
-          showToast('Configurações da pesquisa atualizadas!');
+
+      try {
+        const res = await fetch(url, { method, headers: apiHeaders(), body: JSON.stringify(payload) });
+        if (res.status === 401) {
+          authToken = '';
+          currentPartner = null;
+          localStorage.removeItem('cch_token');
+          updateUserHeaderUI();
+          closeWatchlistModal();
+          showLoginModal();
+          showToast('Sessão expirada. Faça login com seu usuário e senha.');
+          return;
         }
+        const saved = await res.json();
+        if (res.ok) {
+          activeWatchlistId = saved.id;
+          closeWatchlistModal();
+          await loadDashboard();
+          if (isCreatingWatchlist) {
+            await triggerScanNow();
+          } else {
+            showToast('Configurações da pesquisa atualizadas com sucesso!');
+          }
+        } else {
+          let errMsg = 'Erro ao salvar pesquisa.';
+          if (saved.detail) {
+            if (Array.isArray(saved.detail)) {
+              errMsg = saved.detail.map(d => d.msg || d.loc?.join('.')).join(' | ');
+            } else {
+              errMsg = saved.detail;
+            }
+          }
+          showConsistencyError('Erro de Validação: ' + errMsg);
+        }
+      } catch (err) {
+        showConsistencyError('Falha de conexão com o servidor: ' + err.message);
       }
     }
 
     async function deleteCurrentWatchlist() {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        closeWatchlistModal();
+        showLoginModal();
+        showToast('Faça login com seu usuário para gerenciar pesquisas.');
+        return;
+      }
       if (!activeWatchlistId) return;
       if (!confirm('Tem certeza que deseja excluir esta pesquisa e seus resultados?')) return;
       const res = await fetch(`/api/watchlists/${activeWatchlistId}`, { method: 'DELETE', headers: apiHeaders() });
+      if (res.status === 401) {
+        authToken = '';
+        currentPartner = null;
+        localStorage.removeItem('cch_token');
+        updateUserHeaderUI();
+        closeWatchlistModal();
+        showLoginModal();
+        showToast('Sessão expirada. Faça login novamente.');
+        return;
+      }
       if (res.ok) {
         activeWatchlistId = null;
         closeWatchlistModal();
@@ -1417,6 +2052,14 @@
     // PAINEL EXCLUSIVO DO RAFAEL: AUDITORIA, FALHAS, E-MAIL & PERFIS
     // =====================================================================
     async function openPartnersSettingsModal(initialTab = 'history') {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        showLoginModal();
+        showToast('Faça login para acessar o painel de administração.');
+        return;
+      }
       if (!isRafaelAdmin()) {
         showToast('Acesso restrito ao desenvolvedor (Rafael Campos).');
         return;
@@ -1444,67 +2087,55 @@
 
     function renderPartnersCards() {
       const container = document.getElementById('partnersListContainer');
-      container.innerHTML = allPartners.map(p => `
+      container.innerHTML = allPartners.map(p => {
+        const pid = Number(p.id);
+        const safeColor = escapeHtml(p.avatar_color || '#f59e0b');
+        return `
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="w-8 h-8 rounded-full flex items-center justify-center text-slate-950 font-black text-xs" style="background:${p.avatar_color || '#f59e0b'}">
-                U${p.id}
+              <span class="w-8 h-8 rounded-full flex items-center justify-center text-slate-950 font-black text-xs" style="background:${fordAvatarColor(p.avatar_color)};color:${isLightColor(fordAvatarColor(p.avatar_color)) ? '#030f27' : '#fff'}">
+                U${pid}
               </span>
               <div>
-                <div class="font-bold text-white text-sm">${p.name}</div>
-                <div class="text-[11px] text-slate-400">Usuário: <code>${p.username}</code></div>
+                <div class="font-bold text-white text-sm">${escapeHtml(p.name)}</div>
+                <div class="text-[11px] text-slate-400">Usuário: <code>${escapeHtml(p.username)}</code></div>
               </div>
             </div>
           </div>
 
           <div>
             <label class="block text-slate-400 mb-1">Nome de Exibição</label>
-            <input id="pName_${p.id}" type="text" value="${p.name}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            <input id="pName_${pid}" type="text" value="${escapeHtml(p.name)}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div>
             <label class="block text-slate-400 mb-1">Cargo / Função</label>
-            <input id="pRole_${p.id}" type="text" value="${p.role || ''}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            <input id="pRole_${pid}" type="text" value="${escapeHtml(p.role || '')}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div>
             <label class="block text-slate-400 mb-1">📧 E-mail para Alertas</label>
-            <input id="pEmail_${p.id}" type="email" value="${p.email || ''}" placeholder="email@empresa.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            <input id="pEmail_${pid}" type="email" value="${escapeHtml(p.email || '')}" placeholder="email@empresa.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div>
             <label class="block text-slate-400 mb-1">🔑 Alterar Senha (deixe em branco p/ manter)</label>
-            <input id="pPass_${p.id}" type="password" placeholder="Nova senha..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            <input id="pPass_${pid}" type="password" placeholder="Nova senha..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div class="flex items-center justify-between pt-2">
             <label class="inline-flex items-center gap-1.5 text-slate-300">
-              <input id="pNotifEmail_${p.id}" type="checkbox" ${p.notify_email ? 'checked' : ''} class="rounded bg-slate-900 border-slate-700 text-amber-500" />
+              <input id="pNotifEmail_${pid}" type="checkbox" ${p.notify_email ? 'checked' : ''} class="rounded bg-slate-900 border-slate-700 text-amber-500" />
               <span>Receber Alertas por E-mail</span>
             </label>
-            <button type="button" onclick="savePartnerCard(${p.id}, '${p.avatar_color || '#f59e0b'}', this)" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition">
+            <button type="button" data-color="${safeColor}" onclick="savePartnerCard(${pid}, this.dataset.color, this)" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition">
               💾 Salvar Perfil
             </button>
           </div>
         </div>
-      `).join('');
-    }
-
-    function persistPartnersLocalBackup() {
-      try {
-        const map = {};
-        for (const p of allPartners) {
-          map[p.id] = {
-            name: p.name,
-            role: p.role,
-            email: p.email,
-            notify_email: p.notify_email,
-            avatar_color: p.avatar_color
-          };
-        }
-        localStorage.setItem('cch_partners_backup', JSON.stringify(map));
-      } catch (e) {}
+      `;
+      }).join('');
     }
 
     async function savePartnerCard(pid, color, btnEl = null) {
@@ -1525,7 +2156,6 @@
       if (idx !== -1) {
         allPartners[idx] = { ...allPartners[idx], ...payload };
       }
-      persistPartnersLocalBackup();
 
       if (btnEl) btnEl.textContent = '⏳ Salvando...';
 
@@ -1535,16 +2165,33 @@
           headers: apiHeaders(),
           body: JSON.stringify(payload)
         });
+        if (res.status === 401) {
+          authToken = '';
+          currentPartner = null;
+          localStorage.removeItem('cch_token');
+          updateUserHeaderUI();
+          closePartnersModal();
+          showLoginModal();
+          showToast('Sessão expirada. Faça login novamente.');
+          if (btnEl) btnEl.textContent = '💾 Salvar Perfil';
+          return false;
+        }
         if (res.ok) {
           const data = await res.json();
           if (data.partner && idx !== -1) {
             allPartners[idx] = data.partner;
-            persistPartnersLocalBackup();
           }
           if (currentPartner && currentPartner.id === pid) {
             currentPartner = data.partner || allPartners[idx];
             updateUserHeaderUI();
           }
+          const passEl = document.getElementById(`pPass_${pid}`);
+          if (passEl) passEl.value = '';
+        } else {
+          const err = await res.json().catch(() => ({}));
+          showToast(err.detail || 'Erro ao atualizar perfil.');
+          if (btnEl) btnEl.textContent = '💾 Salvar Perfil';
+          return false;
         }
       } catch (e) {}
 
@@ -1575,11 +2222,15 @@
     }
 
     function populateChannelSettingsForm() {
-      document.getElementById('cfgSmtpHost').value = systemSettings.smtp_host || 'brevo.com';
+      document.getElementById('cfgSmtpHost').value = systemSettings.smtp_host || 'smtp.gmail.com';
       document.getElementById('cfgSmtpPort').value = systemSettings.smtp_port || 587;
       document.getElementById('cfgSmtpFromName').value = systemSettings.smtp_from_name || 'Classic Car Hunter';
       document.getElementById('cfgSmtpUser').value = systemSettings.smtp_user || 'rafael-reseach@urbanabrasil.com';
-      document.getElementById('cfgSmtpPassword').value = systemSettings.smtp_password || '';
+      const pwdInput = document.getElementById('cfgSmtpPassword');
+      pwdInput.value = '';
+      pwdInput.placeholder = systemSettings.smtp_password_configured
+        ? '•••••••• (Chave configurada e protegida — digite apenas p/ substituir)'
+        : 'Cole sua chave API Brevo (xkeysib-...) ou Senha de App';
       document.getElementById('cfgUsdBrl').value = systemSettings.usd_brl_rate || 5.75;
       document.getElementById('cfgTowPerMile').value = systemSettings.inland_tow_per_mile_usd || 1.65;
       document.getElementById('cfgOceanFreight').value = systemSettings.ocean_freight_usd || 2800;
@@ -1604,28 +2255,44 @@
           await fetch(`/api/partners/${p.id}`, { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(pPayload) }).catch(() => {});
         }
       }
-      persistPartnersLocalBackup();
 
+      const typedPassword = document.getElementById('cfgSmtpPassword').value.trim();
       const payload = {
         smtp_host: document.getElementById('cfgSmtpHost').value.trim(),
         smtp_port: parseInt(document.getElementById('cfgSmtpPort').value, 10) || 587,
         smtp_from_name: document.getElementById('cfgSmtpFromName').value.trim(),
         smtp_user: document.getElementById('cfgSmtpUser').value.trim(),
-        smtp_password: document.getElementById('cfgSmtpPassword').value.trim(),
         usd_brl_rate: parseFloat(document.getElementById('cfgUsdBrl').value) || 5.75,
         inland_tow_per_mile_usd: parseFloat(document.getElementById('cfgTowPerMile').value) || 1.65,
         ocean_freight_usd: parseInt(document.getElementById('cfgOceanFreight').value, 10) || 2800,
         br_classic_tax_pct: parseFloat(document.getElementById('cfgClassicTaxPct').value) || 95.0
       };
-      systemSettings = { ...systemSettings, ...payload };
-      try {
-        localStorage.setItem('cch_settings_backup', JSON.stringify(systemSettings));
-      } catch (e) {}
+      if (typedPassword) {
+        payload.smtp_password = typedPassword;
+      }
 
       const res = await fetch('/api/settings', { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(payload) });
-      if (res.ok && !silent) {
-        showToast('✅ Configurações de e-mail e calculadora salvas!');
-        await loadDashboard();
+      if (res.status === 401) {
+        authToken = '';
+        currentPartner = null;
+        localStorage.removeItem('cch_token');
+        updateUserHeaderUI();
+        closePartnersModal();
+        showLoginModal();
+        showToast('Sessão expirada. Faça login novamente.');
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        systemSettings = data.settings || systemSettings;
+        populateChannelSettingsForm();
+        if (!silent) {
+          showToast('✅ Configurações de e-mail e calculadora salvas com segurança!');
+          await loadDashboard();
+        }
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Erro ao salvar configurações.');
       }
     }
 
@@ -1637,6 +2304,7 @@
 
     async function loadNotificationsHistory() {
       const res = await fetch('/api/notifications?limit=30', { headers: apiHeaders(), cache: 'no-store' });
+      if (!res.ok) return;
       const data = await res.json();
       const list = data.notifications || [];
       const scans = data.scan_logs || [];
@@ -1652,11 +2320,11 @@
             <div class="bg-slate-950 border ${isErr ? 'border-rose-500/40' : 'border-slate-800'} rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
               <div class="space-y-0.5">
                 <div class="flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeCls}">${n.status.toUpperCase()}</span>
-                  <span class="font-bold text-white">📧 E-mail → ${n.partner_name} (${n.recipient})</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeCls}">${escapeHtml((n.status || '').toUpperCase())}</span>
+                  <span class="font-bold text-white">📧 E-mail → ${escapeHtml(n.partner_name)} (${escapeHtml(n.recipient)})</span>
                 </div>
-                <div class="text-[11px] text-slate-400">${n.subject} • ${n.items_count} veículo(s) • ${new Date(n.created_at).toLocaleString('pt-BR')}</div>
-                <div class="text-[11px] ${isErr ? 'text-rose-400 font-semibold' : 'text-emerald-400'}">${n.error_message || ''}</div>
+                <div class="text-[11px] text-slate-400">${escapeHtml(n.subject)} • ${Number(n.items_count) || 0} veículo(s) • ${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+                <div class="text-[11px] ${isErr ? 'text-rose-400 font-semibold' : 'text-emerald-400'}">${escapeHtml(n.error_message || '')}</div>
               </div>
             </div>
           `;
@@ -1672,9 +2340,9 @@
           return `
             <div class="bg-slate-950 border ${isErr ? 'border-rose-500/40' : 'border-slate-800'} rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <div class="font-bold text-white">Pesquisa #${s.watchlist_id} • Status: <span class="${isErr ? 'text-rose-400' : 'text-emerald-400'}">${s.status.toUpperCase()}</span></div>
-                <div class="text-[11px] text-slate-400">Veículos encontrados: ${s.total_scraped} (${s.interesting_new_listings || 0} novos relevantes) • ${new Date(s.started_at).toLocaleString('pt-BR')}</div>
-                ${s.error_message ? `<div class="text-[11px] text-rose-400">Falha: ${s.error_message}</div>` : ''}
+                <div class="font-bold text-white">Pesquisa #${Number(s.watchlist_id) || 0} • Status: <span class="${isErr ? 'text-rose-400' : 'text-emerald-400'}">${escapeHtml((s.status || '').toUpperCase())}</span></div>
+                <div class="text-[11px] text-slate-400">Veículos encontrados: ${Number(s.total_scraped) || 0} (${Number(s.interesting_new_listings) || 0} novos relevantes) • ${new Date(s.started_at).toLocaleString('pt-BR')}</div>
+                ${s.error_message ? `<div class="text-[11px] text-rose-400">Falha: ${escapeHtml(s.error_message)}</div>` : ''}
               </div>
             </div>
           `;
@@ -1686,6 +2354,14 @@
     // MODAL DE DISPARO DE RELATÓRIO POR E-MAIL
     // =====================================================================
     function openSendAlertModal(isTest = false) {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        showLoginModal();
+        showToast('Faça login com seu usuário para enviar relatórios por e-mail.');
+        return;
+      }
       if (!activeWatchlistId && allWatchlists.length > 0) {
         activeWatchlistId = allWatchlists[0].id;
       }
@@ -1696,8 +2372,8 @@
       const activeWl = allWatchlists.find(w => w.id === activeWatchlistId) || {};
       const sel = document.getElementById('manualNotifyPartnerSelect');
       sel.innerHTML = `
-        <option value="">🎯 Responsável pela Pesquisa (${activeWl.owner_name || 'Rafael Campos'})</option>
-        ${allPartners.map(p => `<option value="${p.id}">${p.name} (${p.email || 'Sem e-mail cadastrado'})</option>`).join('')}
+        <option value="">🎯 Responsável pela Pesquisa (${escapeHtml(activeWl.owner_name || 'Rafael Campos')})</option>
+        ${allPartners.map(p => `<option value="${Number(p.id)}">${escapeHtml(p.name)} (${escapeHtml(p.email || 'Sem e-mail cadastrado')})</option>`).join('')}
       `;
       document.getElementById('alertDispatchResultBox').classList.add('hidden');
       document.getElementById('sendAlertModal').classList.remove('hidden');
@@ -1714,29 +2390,43 @@
       const pidVal = document.getElementById('manualNotifyPartnerSelect').value;
       const scope = document.getElementById('manualNotifyScope').value;
 
-      const res = await fetch('/api/notify/send', {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify({
-          watchlist_id: activeWatchlistId,
-          partner_id: pidVal ? parseInt(pidVal, 10) : null,
-          channels: ['email'],
-          only_new_interesting: scope === 'new_interesting',
-          is_test: isTest
-        })
-      });
-      const data = await res.json();
-      const results = data.results || [];
-      const emailRes = results[0];
-      if (emailRes) {
-        document.getElementById('alertDispatchResultBox').classList.remove('hidden');
-        const statusLines = results.map(r => `E-MAIL (${r.partner_name}): ${r.detail}`).join(' | ');
-        const statusEl = document.getElementById('alertDispatchStatusText');
-        statusEl.textContent = statusLines;
-        statusEl.className = emailRes.status === 'sent' ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
-        document.getElementById('alertPreviewTextarea').value = emailRes.message_preview || '';
+      try {
+        const res = await fetch('/api/notify/send', {
+          method: 'POST',
+          headers: apiHeaders(),
+          body: JSON.stringify({
+            watchlist_id: activeWatchlistId,
+            partner_id: pidVal ? parseInt(pidVal, 10) : null,
+            channels: ['email'],
+            only_new_interesting: scope === 'new_interesting',
+            is_test: isTest
+          })
+        });
+        if (res.status === 401) {
+          authToken = '';
+          currentPartner = null;
+          localStorage.removeItem('cch_token');
+          updateUserHeaderUI();
+          closeSendAlertModal();
+          showLoginModal();
+          showToast('Sessão expirada. Faça login novamente.');
+          return;
+        }
+        const data = await res.json();
+        const results = data.results || [];
+        const emailRes = results[0];
+        if (emailRes) {
+          document.getElementById('alertDispatchResultBox').classList.remove('hidden');
+          const statusLines = results.map(r => `E-MAIL (${r.partner_name}): ${r.detail}`).join(' | ');
+          const statusEl = document.getElementById('alertDispatchStatusText');
+          statusEl.textContent = statusLines;
+          statusEl.className = emailRes.status === 'sent' ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+          document.getElementById('alertPreviewTextarea').value = emailRes.message_preview || '';
+        }
+        showToast('Processamento de e-mail registrado na auditoria!');
+      } catch (err) {
+        showToast('Erro ao processar envio: ' + err.message);
       }
-      showToast('Processamento de e-mail registrado na auditoria!');
     }
 
     function copyPreviewText() {
@@ -1777,6 +2467,7 @@
       };
 
       const res = await fetch('/api/import-calc', { method: 'POST', headers: apiHeaders(), body: JSON.stringify(payload) });
+      if (!res.ok) return;
       const data = await res.json();
       const est = data.estimate;
       if (!est) return;
@@ -1785,14 +2476,14 @@
       }
 
       document.getElementById('calcBreakdownBox').innerHTML = `
-        <div class="flex justify-between text-slate-300"><span>Valor FOB do Veículo (EUA):</span><strong>$${est.fob_usd.toLocaleString()} (R$ ${est.fob_brl.toLocaleString('pt-BR')})</strong></div>
-        <div class="flex justify-between text-slate-300"><span>Frete Interno EUA até Porto FL:</span><strong>$${est.inland_tow_usd.toLocaleString()}</strong></div>
-        <div class="flex justify-between text-slate-300"><span>Frete Marítimo (Flórida → Brasil) + Broker:</span><strong>$${(est.ocean_freight_usd + est.us_export_broker_usd).toLocaleString()}</strong></div>
-        <div class="flex justify-between text-slate-300"><span>Impostos Federais/Estaduais Clássico (&gt;30 anos):</span><strong>R$ ${est.taxes_brl.toLocaleString('pt-BR')}</strong></div>
-        <div class="flex justify-between text-slate-300"><span>Desembaraço Aduaneiro &amp; Armazenagem BR:</span><strong>R$ ${est.despachante_brl.toLocaleString('pt-BR')}</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Valor FOB do Veículo (EUA):</span><strong>$${Number(est.fob_usd).toLocaleString()} (R$ ${Number(est.fob_brl).toLocaleString('pt-BR')})</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Frete Interno EUA até Porto FL:</span><strong>$${Number(est.inland_tow_usd).toLocaleString()}</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Frete Marítimo (Flórida → Brasil) + Broker:</span><strong>$${Number(est.ocean_freight_usd + est.us_export_broker_usd).toLocaleString()}</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Impostos Federais/Estaduais Clássico (&gt;30 anos):</span><strong>R$ ${Number(est.taxes_brl).toLocaleString('pt-BR')}</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Desembaraço Aduaneiro &amp; Armazenagem BR:</span><strong>R$ ${Number(est.despachante_brl).toLocaleString('pt-BR')}</strong></div>
         <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-sm">
           <span class="font-bold text-amber-400">CUSTO TOTAL ESTIMADO NO BRASIL:</span>
-          <span class="text-lg font-black text-emerald-400">${est.total_landed_display}</span>
+          <span class="text-lg font-black text-emerald-400">${escapeHtml(est.total_landed_display)}</span>
         </div>
       `;
       activeCalcListing._lastEstimate = est;
@@ -1815,8 +2506,12 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      await checkAuthOnLoad();
-      await loadDashboard();
+      const authed = await checkAuthOnLoad();
+      if (authed) {
+        await loadDashboard();
+      } else {
+        renderListingsGrid([]);
+      }
     });
   </script>
 </body>

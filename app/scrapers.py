@@ -22,6 +22,7 @@ from app.geo import (
     estimate_distance_from_deerfield,
     parse_location_parts,
 )
+from app.taxonomy import resolve_portal_slugs
 
 # Parts / memorabilia exclusion keywords for eBay Motors
 PART_KEYWORDS = [
@@ -266,19 +267,20 @@ def _make_listing_id(watchlist_id: int, source: str, ext_id: str) -> str:
 # 1. CLASSICCARS.COM SCRAPER
 # =====================================================================
 def scrape_classiccars(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
-    """Scrape ClassicCars.com for target year+make and primary model/keywords."""
-    make_slug = (watchlist.get("make") or "cadillac").strip().lower().replace(" ", "-")
+    """Scrape ClassicCars.com using standardized taxonomy slugs and year ranges."""
+    slugs = resolve_portal_slugs(watchlist.get("make") or "", watchlist.get("model_primary") or "")
+    make_slug = slugs["make"]["classiccars"]
+    primary_slug = slugs["model"]["classiccars"]
     y_min = int(watchlist.get("year_min", 1960))
     y_max = int(watchlist.get("year_max", 1960))
-    primary_slug = (watchlist.get("model_primary") or "").strip().lower().replace(" ", "-")
     related_raw = (watchlist.get("related_keywords") or "").lower()
 
     year_segment = str(y_min) if y_min == y_max else f"{y_min}-{y_max}"
     urls = []
-    if primary_slug and primary_slug != "eureka":
+    if primary_slug:
         urls.append(f"https://classiccars.com/listings/find/{year_segment}/{make_slug}/{primary_slug}")
     urls.append(f"https://classiccars.com/listings/find/{year_segment}/{make_slug}")
-    if "hearse" in related_raw or primary_slug == "eureka":
+    if "hearse" in related_raw or primary_slug in ("eureka", "hearse"):
         urls.append(f"https://classiccars.com/listings/find/all-years/{make_slug}/hearse")
 
     results: dict[str, dict[str, Any]] = {}
@@ -400,15 +402,19 @@ def scrape_classiccars(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
 # 2. AUTOTRADER CLASSICS SCRAPER
 # =====================================================================
 def scrape_autotrader(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
-    """Scrape Classics on Autotrader using embedded window.__PRELOADED_STATE__ JSON."""
-    make_slug = (watchlist.get("make") or "cadillac").strip().lower().replace(" ", "_")
+    """Scrape Classics on Autotrader using standardized taxonomy slugs and window.__PRELOADED_STATE__ JSON."""
+    slugs = resolve_portal_slugs(watchlist.get("make") or "", watchlist.get("model_primary") or "")
+    make_slug = slugs["make"]["autotrader"]
+    model_slug = slugs["model"]["autotrader"]
     y_min = int(watchlist.get("year_min", 1960))
     primary_kw = (watchlist.get("model_primary") or "").strip().lower()
     related_kws = [k.strip().lower() for k in (watchlist.get("related_keywords") or "").split(",") if k.strip()]
 
-    urls = [
-        f"https://classics.autotrader.com/classic-cars-for-sale/{y_min}-{make_slug}-for-sale",
-    ]
+    urls = []
+    if model_slug and model_slug != make_slug:
+        urls.append(f"https://classics.autotrader.com/classic-cars-for-sale/{y_min}-{make_slug}_{model_slug}-for-sale")
+        urls.append(f"https://classics.autotrader.com/classic-cars-for-sale/{make_slug}_{model_slug}-for-sale")
+    urls.append(f"https://classics.autotrader.com/classic-cars-for-sale/{y_min}-{make_slug}-for-sale")
     if primary_kw:
         urls.append(f"https://classics.autotrader.com/classic-cars-for-sale/{make_slug}-for-sale?keyword={quote_plus(primary_kw)}")
     for rkw in related_kws[:2]:
@@ -509,15 +515,19 @@ def scrape_autotrader(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
 # 3. HEMMINGS SCRAPER
 # =====================================================================
 def scrape_hemmings(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
-    """Scrape Hemmings Classifieds using embedded listings-search-json."""
-    make_slug = (watchlist.get("make") or "cadillac").strip().lower().replace(" ", "-")
+    """Scrape Hemmings Classifieds using standardized taxonomy slugs and listings-search-json."""
+    slugs = resolve_portal_slugs(watchlist.get("make") or "", watchlist.get("model_primary") or "")
+    make_slug = slugs["make"]["hemmings"]
+    model_slug = slugs["model"]["hemmings"]
     y_min = int(watchlist.get("year_min", 1960))
     primary_kw = (watchlist.get("model_primary") or "").strip().lower()
     related_kws = [k.strip().lower() for k in (watchlist.get("related_keywords") or "").split(",") if k.strip()]
 
-    urls = [
-        f"https://www.hemmings.com/classifieds/cars-for-sale/{make_slug}/all-models/{y_min}",
-    ]
+    urls = []
+    if model_slug and model_slug not in (make_slug, "all-models"):
+        urls.append(f"https://www.hemmings.com/classifieds/cars-for-sale/{make_slug}/{model_slug}/{y_min}")
+        urls.append(f"https://www.hemmings.com/classifieds/cars-for-sale/{make_slug}/{model_slug}")
+    urls.append(f"https://www.hemmings.com/classifieds/cars-for-sale/{make_slug}/all-models/{y_min}")
     if primary_kw:
         urls.append(f"https://www.hemmings.com/classifieds/cars-for-sale/{make_slug}?q={quote_plus(primary_kw)}")
     for rkw in related_kws[:3]:
@@ -605,15 +615,16 @@ def scrape_hemmings(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
 # =====================================================================
 def scrape_ebay(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
     """Scrape eBay Motors Cars & Trucks (Category 6001) for target vehicle & related keywords."""
-    make = (watchlist.get("make") or "Cadillac").strip()
+    slugs = resolve_portal_slugs(watchlist.get("make") or "", watchlist.get("model_primary") or "")
+    make = slugs["make"]["ebay"]
+    primary_kw = slugs["model"]["ebay"]
     y_min = int(watchlist.get("year_min", 1960))
-    primary_kw = (watchlist.get("model_primary") or "").strip()
     related_kws = [k.strip().lower() for k in (watchlist.get("related_keywords") or "").split(",") if k.strip()]
     target_zip = (watchlist.get("target_zip") or "33441").strip()
 
     queries = [f"{y_min} {make.lower()}"]
     if primary_kw:
-        queries.append(f"{y_min} {make.lower()} {primary_kw.lower()}" if primary_kw.lower() != "eureka" else f"{make.lower()} {primary_kw.lower()}")
+        queries.append(f"{y_min} {make.lower()} {primary_kw.lower()}")
     if related_kws:
         queries.append(f"{make.lower()} {related_kws[0]}")
     unique_queries = list(dict.fromkeys(queries))
@@ -903,9 +914,11 @@ def _scrape_generic_portal(
 
 
 def scrape_bringatrailer(watchlist: dict[str, Any]) -> list[dict[str, Any]]:
-    make = (watchlist.get("make") or "").strip()
-    model = (watchlist.get("model_primary") or "").strip()
-    q = quote_plus(f"{make} {model}".strip())
+    slugs = resolve_portal_slugs(watchlist.get("make") or "", watchlist.get("model_primary") or "")
+    make = slugs["make"]["bringatrailer"]
+    model = slugs["model"]["bringatrailer"]
+    y_min = watchlist.get("year_min", 1960)
+    q = quote_plus(f"{y_min} {make} {model}".strip() if y_min else f"{make} {model}".strip())
     return _scrape_generic_portal(
         watchlist,
         source_key="bringatrailer",

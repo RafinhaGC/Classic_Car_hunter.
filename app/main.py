@@ -9,16 +9,20 @@ import os
 from typing import Any, Optional
 from urllib.parse import unquote
 
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 from app.database import (
     create_session_token,
     get_conn,
+    get_masked_settings,
+    get_models_for_make,
     get_partner_by_token,
+    get_portal_rules,
     get_system_settings,
+    get_taxonomy_tree,
     hash_password,
     init_db,
     update_system_settings,
@@ -290,33 +294,72 @@ async def lifespan(app: FastAPI):
     task.cancel()
 
 
+_enable_api_docs = os.environ.get("ENABLE_API_DOCS", "false").strip().lower() in ("1", "true", "yes")
+
+
+def _get_allowed_origins() -> list[str]:
+    origins = [
+        "https://classic-car-hunter.onrender.com",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+    for env_var in ("RENDER_EXTERNAL_URL", "PUBLIC_APP_URL", "ALLOWED_ORIGINS"):
+        val = os.environ.get(env_var, "").strip()
+        if val:
+            for item in val.split(","):
+                clean = item.strip().rstrip("/")
+                if clean and clean != "*" and clean not in origins:
+                    origins.append(clean)
+    return origins
+
+
 app = FastAPI(
     title="Classic Car Hunter • Pesquisa & Importação de Veículos",
     description="Plataforma de Monitoramento de Portais de Venda de Autos dos EUA",
-    version="3.0.0",
+    version="3.1.0",
     lifespan=lifespan,
+    docs_url="/docs" if _enable_api_docs else None,
+    redoc_url="/redoc" if _enable_api_docs else None,
+    openapi_url="/openapi.json" if _enable_api_docs else None,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_get_allowed_origins(),
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 
 @app.middleware("http")
-async def disable_api_cache(request, call_next):
+async def security_and_cache_headers(request, call_next):
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=()"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' https: http: data: blob:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
     return response
 
 
 @app.get("/api/health")
 def health_check() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "version": "3.1-hardened-10portals"}
 
 
 # =====================================================================
@@ -349,31 +392,61 @@ class PartnerCreateModel(BaseModel):
 
 
 class WatchlistUpdateModel(BaseModel):
-    name: str
-    make: str = ""
-    model_primary: str = ""
-    related_keywords: str = ""
-    year_min: int = 1960
-    year_max: int = 1970
-    price_min: int = 15000
-    price_max: int = 60000
-    target_city: str = "Deerfield Beach"
-    target_state: str = "FL"
-    target_zip: str = "33441"
-    sources: str = "ebay,autotrader,classiccars,hemmings,bringatrailer,classiccom,carscom,cargurus,streetside,carsandbids"
-    interval_minutes: int = 240
-    is_active: int = 1
-    owner_partner_id: int = 1
-    notify_target: str = "owner"
-    client_name: str = ""
-    client_notes: str = ""
-    schedule_mode: str = "times_per_day"
-    runs_per_day: int = 3
-    fixed_hours: str = "08:00,14:00,20:00"
-    notify_only_new_interesting: int = 1
-    min_alert_score: int = 55
-    auto_notify_email: int = 1
-    auto_notify_whatsapp: int = 0
+    name: str = Field(..., min_length=1, max_length=160)
+    make: str = Field(..., min_length=1, max_length=80)
+    model_primary: str = Field(..., min_length=1, max_length=120)
+    related_keywords: str = Field(default="", max_length=600)
+    year_min: int = Field(default=1960, ge=1900, le=2026)
+    year_max: int = Field(default=1970, ge=1900, le=2026)
+    price_min: int = Field(default=15000, ge=0, le=50_000_000)
+    price_max: int = Field(default=60000, ge=0, le=50_000_000)
+    target_city: str = Field(default="Deerfield Beach", max_length=100)
+    target_state: str = Field(default="FL", max_length=10)
+    target_zip: str = Field(default="33441", max_length=20)
+    sources: str = Field(
+        default="ebay,autotrader,classiccars,hemmings,bringatrailer,classiccom,carscom,cargurus,streetside,carsandbids"
+    )
+    interval_minutes: int = Field(default=240, ge=15, le=10080)
+    is_active: int = Field(default=1, ge=0, le=1)
+    owner_partner_id: int = Field(default=1, ge=1)
+    notify_target: str = Field(default="owner")
+    client_name: str = Field(default="", max_length=160)
+    client_notes: str = Field(default="", max_length=1000)
+    schedule_mode: str = Field(default="times_per_day")
+    runs_per_day: int = Field(default=3, ge=1, le=24)
+    fixed_hours: str = Field(default="08:00,14:00,20:00", max_length=120)
+    notify_only_new_interesting: int = Field(default=1, ge=0, le=1)
+    min_alert_score: int = Field(default=55, ge=0, le=100)
+    auto_notify_email: int = Field(default=1, ge=0, le=1)
+    auto_notify_whatsapp: int = Field(default=0, ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_vehicle_consistency(self) -> "WatchlistUpdateModel":
+        clean_make = (self.make or "").strip()
+        clean_model = (self.model_primary or "").strip()
+        if not clean_make:
+            raise ValueError("A marca do veículo (Make) é obrigatória para iniciar a busca.")
+        if not clean_model:
+            raise ValueError("O modelo específico do veículo (Model) é obrigatório para iniciar a busca.")
+
+        if self.year_min < 1900 or self.year_min > 2026:
+            raise ValueError(f"Ano inicial ({self.year_min}) inválido. Deve estar entre 1900 e 2026.")
+        if self.year_max < 1900 or self.year_max > 2026:
+            raise ValueError(f"Ano final ({self.year_max}) inválido. Deve estar entre 1900 e 2026.")
+        if self.year_min > self.year_max:
+            raise ValueError(
+                f"Inconsistência cronológica: Ano inicial ({self.year_min}) não pode ser maior que o ano final ({self.year_max})."
+            )
+
+        if self.price_min < 0:
+            raise ValueError("O preço mínimo não pode ser negativo.")
+        if self.price_max < 0:
+            raise ValueError("O preço máximo não pode ser negativo.")
+        if self.price_min > self.price_max:
+            raise ValueError(
+                f"Inconsistência financeira: Preço mínimo (${self.price_min:,}) não pode ser maior que o preço máximo (${self.price_max:,})."
+            )
+        return self
 
 
 class ListingPatchModel(BaseModel):
@@ -392,7 +465,7 @@ class ManualNotifyModel(BaseModel):
 
 
 class ImportCalcRequest(BaseModel):
-    price_usd: int
+    price_usd: int = Field(..., ge=0)
     distance_miles: Optional[float] = None
     usd_brl_rate: Optional[float] = None
     inland_tow_usd: Optional[int] = None
@@ -406,6 +479,35 @@ def _extract_token(authorization: Optional[str]) -> Optional[str]:
     if authorization.lower().startswith("bearer "):
         return authorization[7:].strip()
     return authorization.strip()
+
+
+def _is_admin_user(partner: Optional[dict[str, Any]]) -> bool:
+    if not partner:
+        return False
+    uname = str(partner.get("username") or "").strip().lower()
+    role = str(partner.get("role") or "").strip().lower()
+    return int(partner.get("id") or 0) == 1 or uname == "rafael" or "desenvolvedor" in role or "admin" in role
+
+
+def get_current_user(authorization: Optional[str] = Header(default=None)) -> dict[str, Any]:
+    token = _extract_token(authorization)
+    partner = get_partner_by_token(token)
+    if not partner:
+        raise HTTPException(
+            status_code=401,
+            detail="Autenticação obrigatória. Envie o cabeçalho Authorization: Bearer <token>.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return partner
+
+
+def require_admin(current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+    if not _is_admin_user(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso restrito ao administrador do sistema (Rafael Campos).",
+        )
+    return current_user
 
 
 # =====================================================================
@@ -447,15 +549,12 @@ def logout(authorization: Optional[str] = Header(default=None)) -> dict[str, Any
 
 
 @app.get("/api/auth/me")
-def get_me(authorization: Optional[str] = Header(default=None)) -> dict[str, Any]:
-    partner = get_partner_by_token(_extract_token(authorization))
-    if not partner:
-        raise HTTPException(status_code=401, detail="Sessão não autenticada")
-    return {"partner": partner}
+def get_me(current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+    return {"partner": current_user}
 
 
 @app.get("/api/partners")
-def list_partners() -> dict[str, Any]:
+def list_partners(current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
     conn = get_conn()
     try:
         rows = conn.execute(
@@ -467,27 +566,38 @@ def list_partners() -> dict[str, Any]:
 
 
 @app.put("/api/partners/{partner_id}")
-def update_partner(partner_id: int, payload: PartnerUpdateModel) -> dict[str, Any]:
+def update_partner(
+    partner_id: int,
+    payload: PartnerUpdateModel,
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
+    is_admin = _is_admin_user(current_user)
+    if int(current_user["id"]) != int(partner_id) and not is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso negado (BOLA/IDOR bloqueado): você só tem permissão para alterar seu próprio perfil.",
+        )
+
     conn = get_conn()
     try:
         row = conn.execute("SELECT * FROM partners WHERE id = ?", (partner_id,)).fetchone()
         if not row:
-            raise HTTPException(status_code=404, detail="Sócio não encontrado")
+            raise HTTPException(status_code=404, detail="Perfil de usuário não encontrado")
+        # Non-admins cannot escalate their own role
+        new_role = payload.role.strip() if is_admin else row["role"]
         with conn:
             conn.execute(
                 """
                 UPDATE partners SET
-                    name = ?, role = ?, email = ?, whatsapp_phone = ?,
-                    notify_email = ?, notify_whatsapp = ?, avatar_color = ?
+                    name = ?, role = ?, email = ?, whatsapp_phone = '',
+                    notify_email = ?, notify_whatsapp = 0, avatar_color = ?
                 WHERE id = ?
                 """,
                 (
                     payload.name.strip(),
-                    payload.role.strip(),
+                    new_role,
                     payload.email.strip(),
-                    payload.whatsapp_phone.strip(),
                     payload.notify_email,
-                    payload.notify_whatsapp,
                     payload.avatar_color,
                     partner_id,
                 ),
@@ -507,14 +617,17 @@ def update_partner(partner_id: int, payload: PartnerUpdateModel) -> dict[str, An
 
 
 @app.post("/api/partners")
-def create_partner(payload: PartnerCreateModel) -> dict[str, Any]:
+def create_partner(
+    payload: PartnerCreateModel,
+    admin_user: dict[str, Any] = Depends(require_admin),
+) -> dict[str, Any]:
     conn = get_conn()
     try:
         with conn:
             cur = conn.execute(
                 """
                 INSERT INTO partners (username, name, role, password_hash, email, whatsapp_phone, notify_email, notify_whatsapp, avatar_color, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+                VALUES (?, ?, ?, ?, ?, '', 1, 0, ?, ?)
                 """,
                 (
                     payload.username.strip().lower(),
@@ -522,7 +635,6 @@ def create_partner(payload: PartnerCreateModel) -> dict[str, Any]:
                     payload.role.strip(),
                     hash_password(payload.password.strip()),
                     payload.email.strip(),
-                    payload.whatsapp_phone.strip(),
                     payload.avatar_color,
                     utc_now_iso(),
                 ),
@@ -534,7 +646,7 @@ def create_partner(payload: PartnerCreateModel) -> dict[str, Any]:
         ).fetchone()
         return {"partner": dict(created)}
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Erro ao criar sócio: {exc}")
+        raise HTTPException(status_code=400, detail=f"Erro ao criar usuário: {exc}")
     finally:
         conn.close()
 
@@ -543,18 +655,25 @@ def create_partner(payload: PartnerCreateModel) -> dict[str, Any]:
 # SETTINGS, NOTIFICATIONS & IMPORT CALCULATOR ENDPOINTS
 # =====================================================================
 @app.get("/api/settings")
-def api_get_settings() -> dict[str, Any]:
-    return {"settings": get_system_settings()}
+def api_get_settings(admin_user: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+    return {"settings": get_masked_settings()}
 
 
 @app.put("/api/settings")
-def api_put_settings(payload: dict[str, Any]) -> dict[str, Any]:
+def api_put_settings(
+    payload: dict[str, Any],
+    admin_user: dict[str, Any] = Depends(require_admin),
+) -> dict[str, Any]:
     updated = update_system_settings(payload)
     return {"settings": updated}
 
 
 @app.get("/api/notifications")
-def api_get_notifications(watchlist_id: Optional[int] = None, limit: int = 30) -> dict[str, Any]:
+def api_get_notifications(
+    watchlist_id: Optional[int] = None,
+    limit: int = 30,
+    admin_user: dict[str, Any] = Depends(require_admin),
+) -> dict[str, Any]:
     conn = get_conn()
     try:
         if watchlist_id is not None:
@@ -580,7 +699,10 @@ def api_get_notifications(watchlist_id: Optional[int] = None, limit: int = 30) -
 
 
 @app.post("/api/notify/send")
-def api_send_notification(payload: ManualNotifyModel) -> dict[str, Any]:
+def api_send_notification(
+    payload: ManualNotifyModel,
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
     conn = get_conn()
     try:
         wl_row = conn.execute("SELECT * FROM watchlists WHERE id = ?", (payload.watchlist_id,)).fetchone()
@@ -620,7 +742,10 @@ def api_send_notification(payload: ManualNotifyModel) -> dict[str, Any]:
 
 
 @app.post("/api/import-calc")
-def api_import_calc(payload: ImportCalcRequest) -> dict[str, Any]:
+def api_import_calc(
+    payload: ImportCalcRequest,
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
     settings = get_system_settings()
     if payload.usd_brl_rate is not None:
         settings["usd_brl_rate"] = payload.usd_brl_rate
@@ -672,7 +797,11 @@ async def serve_index():
 
 
 @app.get("/api/dashboard")
-def get_dashboard(watchlist_id: Optional[int] = None) -> dict[str, Any]:
+def get_dashboard(
+    watchlist_id: Optional[int] = None,
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
+    is_admin = _is_admin_user(current_user)
     conn = get_conn()
     try:
         partners = {
@@ -696,7 +825,7 @@ def get_dashboard(watchlist_id: Optional[int] = None) -> dict[str, Any]:
                 "partners": list(partners.values()),
                 "watchlists": watchlists,
                 "active_watchlist_id": None,
-                "settings": get_system_settings(conn),
+                "settings": get_masked_settings(conn),
                 "stats": {
                     "total_listings": 0,
                     "exact_and_coachbuilt": 0,
@@ -760,19 +889,21 @@ def get_dashboard(watchlist_id: Optional[int] = None) -> dict[str, Any]:
                 sd["source_stats"] = {}
             recent_scans.append(sd)
 
-        recent_notifications = [
-            dict(n)
-            for n in conn.execute(
-                "SELECT * FROM notification_logs WHERE watchlist_id = ? ORDER BY id DESC LIMIT 6",
-                (active_wl_id,),
-            ).fetchall()
-        ]
+        recent_notifications = []
+        if is_admin:
+            recent_notifications = [
+                dict(n)
+                for n in conn.execute(
+                    "SELECT * FROM notification_logs WHERE watchlist_id = ? ORDER BY id DESC LIMIT 6",
+                    (active_wl_id,),
+                ).fetchall()
+            ]
 
         return {
             "partners": list(partners.values()),
             "watchlists": watchlists,
             "active_watchlist_id": active_wl_id,
-            "settings": get_system_settings(conn),
+            "settings": get_masked_settings(conn),
             "stats": {
                 "total_listings": total_listings,
                 "exact_and_coachbuilt": exact_and_coach,
@@ -791,6 +922,27 @@ def get_dashboard(watchlist_id: Optional[int] = None) -> dict[str, Any]:
         conn.close()
 
 
+@app.get("/api/taxonomy")
+def get_taxonomy(current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+    """Return all canonical makes, nested models, common variants, and portal slugs."""
+    return {"makes": get_taxonomy_tree()}
+
+
+@app.get("/api/taxonomy/models")
+def get_taxonomy_models(
+    make: str = Query(...),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Return models for a specific make (by slug or name)."""
+    return {"make": make, "models": get_models_for_make(make)}
+
+
+@app.get("/api/taxonomy/portals")
+def get_taxonomy_portals(current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+    """Return reverse-engineered portal filter rules, hierarchy, and parameter specs."""
+    return {"portals": get_portal_rules()}
+
+
 @app.get("/api/listings")
 def get_listings(
     watchlist_id: Optional[int] = None,
@@ -804,6 +956,7 @@ def get_listings(
     include_dismissed: bool = False,
     search: str = "",
     sort_by: str = "score",
+    current_user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
     conn = get_conn()
     try:
@@ -903,12 +1056,11 @@ def get_listings(
 @app.post("/api/scan/{watchlist_id}")
 async def trigger_scan(
     watchlist_id: int,
-    authorization: Optional[str] = Header(default=None),
+    current_user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
     if _scan_lock.locked():
         raise HTTPException(status_code=409, detail="Uma varredura já está em andamento. Aguarde alguns segundos.")
-    partner = get_partner_by_token(_extract_token(authorization))
-    partner_id = partner["id"] if partner else None
+    partner_id = current_user["id"]
     async with _scan_lock:
         result = await asyncio.to_thread(execute_scan_sync, watchlist_id, partner_id)
         return result
@@ -917,10 +1069,9 @@ async def trigger_scan(
 @app.post("/api/watchlists")
 def create_watchlist(
     payload: WatchlistUpdateModel,
-    authorization: Optional[str] = Header(default=None),
+    current_user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
-    partner = get_partner_by_token(_extract_token(authorization))
-    owner_id = partner["id"] if partner else payload.owner_partner_id
+    owner_id = payload.owner_partner_id if _is_admin_user(current_user) else current_user["id"]
 
     conn = get_conn()
     try:
@@ -982,7 +1133,11 @@ def create_watchlist(
 
 
 @app.put("/api/watchlists/{watchlist_id}")
-def update_watchlist(watchlist_id: int, payload: WatchlistUpdateModel) -> dict[str, Any]:
+def update_watchlist(
+    watchlist_id: int,
+    payload: WatchlistUpdateModel,
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
     conn = get_conn()
     try:
         lat, lon = CITY_COORDS.get(
@@ -1045,7 +1200,10 @@ def update_watchlist(watchlist_id: int, payload: WatchlistUpdateModel) -> dict[s
 
 
 @app.delete("/api/watchlists/{watchlist_id}")
-def delete_watchlist(watchlist_id: int) -> dict[str, Any]:
+def delete_watchlist(
+    watchlist_id: int,
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
     conn = get_conn()
     try:
         with conn:
@@ -1062,7 +1220,11 @@ def delete_watchlist(watchlist_id: int) -> dict[str, Any]:
 
 
 @app.patch("/api/listings/{listing_id:path}")
-def patch_listing(listing_id: str, payload: ListingPatchModel) -> dict[str, Any]:
+def patch_listing(
+    listing_id: str,
+    payload: ListingPatchModel,
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
     lid = unquote(listing_id)
     conn = get_conn()
     try:
@@ -1097,7 +1259,10 @@ def patch_listing(listing_id: str, payload: ListingPatchModel) -> dict[str, Any]
 
 
 @app.post("/api/mark-all-seen")
-def mark_all_seen(watchlist_id: Optional[int] = Query(default=None)) -> dict[str, Any]:
+def mark_all_seen(
+    watchlist_id: Optional[int] = Query(default=None),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
     conn = get_conn()
     try:
         with conn:

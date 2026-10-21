@@ -9,6 +9,8 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from app.taxonomy import CANONICAL_MAKES, PORTAL_RULES, resolve_portal_slugs
+
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hunter.db")
 
 
@@ -53,14 +55,6 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "smtp_password": "",
     "smtp_from_name": "Classic Car Hunter • Importação",
     "smtp_use_tls": True,
-    # WhatsApp API configuration
-    "whatsapp_provider": "callmebot",  # callmebot | zapi | evolution | ultramsg | twilio | webhook
-    "whatsapp_api_url": "",
-    "whatsapp_api_key": "",
-    "whatsapp_instance_id": "",
-    "twilio_account_sid": "",
-    "twilio_auth_token": "",
-    "twilio_from_number": "",
     # Brazil Import Calculator parameters
     "usd_brl_rate": 5.75,
     "inland_tow_per_mile_usd": 1.65,
@@ -69,6 +63,27 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "us_export_broker_usd": 950,
     "br_classic_tax_pct": 95.0,
     "br_port_despachante_brl": 12500,
+}
+
+SENSITIVE_SETTING_KEYS = {
+    "smtp_password",
+    "whatsapp_api_key",
+    "twilio_auth_token",
+    "twilio_account_sid",
+}
+
+INTERNAL_MIGRATION_KEYS = {
+    "v3_blank_start_done",
+    "v4_taxonomy_seeded",
+    "v5_taxonomy_10portals_seeded",
+    "initial_watchlist_seeded",
+    "whatsapp_provider",
+    "whatsapp_api_url",
+    "whatsapp_api_key",
+    "whatsapp_instance_id",
+    "twilio_account_sid",
+    "twilio_auth_token",
+    "twilio_from_number",
 }
 
 
@@ -216,6 +231,41 @@ def init_db() -> None:
                 error_message TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS taxonomy_makes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                canonical_name TEXT NOT NULL UNIQUE,
+                slug TEXT NOT NULL UNIQUE,
+                country TEXT NOT NULL DEFAULT 'EUA',
+                portal_slugs_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS taxonomy_models (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                make_id INTEGER NOT NULL,
+                canonical_name TEXT NOT NULL,
+                slug TEXT NOT NULL,
+                year_min_typical INTEGER NOT NULL DEFAULT 1950,
+                year_max_typical INTEGER NOT NULL DEFAULT 1975,
+                common_variants_json TEXT NOT NULL DEFAULT '[]',
+                portal_slugs_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(make_id) REFERENCES taxonomy_makes(id) ON DELETE CASCADE,
+                UNIQUE(make_id, slug)
+            );
+
+            CREATE TABLE IF NOT EXISTS portal_filter_rules (
+                portal_id TEXT PRIMARY KEY,
+                portal_name TEXT NOT NULL,
+                category_scope TEXT NOT NULL,
+                filter_hierarchy TEXT NOT NULL,
+                endpoint_type TEXT NOT NULL,
+                url_template TEXT NOT NULL,
+                param_rules_json TEXT NOT NULL DEFAULT '{}',
+                notes TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
             """
         )
 
@@ -285,10 +335,91 @@ def init_db() -> None:
                 "INSERT OR REPLACE INTO system_settings (key, value_json, updated_at) VALUES ('v3_blank_start_done', 'true', ?)",
                 (now,),
             )
+
+        # Clean up legacy WhatsApp/Twilio settings from DB
+        conn.execute(
+            "DELETE FROM system_settings WHERE key IN ('whatsapp_provider', 'whatsapp_api_url', 'whatsapp_api_key', 'whatsapp_instance_id', 'twilio_account_sid', 'twilio_auth_token', 'twilio_from_number')"
+        )
+
+        # Seed/refresh standardized taxonomy and 10-portal filter rules
+        v5_tax = conn.execute("SELECT value_json FROM system_settings WHERE key = 'v5_taxonomy_10portals_seeded'").fetchone()
+        portal_cnt = conn.execute("SELECT COUNT(*) AS cnt FROM portal_filter_rules").fetchone()["cnt"]
+        if not v5_tax or conn.execute("SELECT COUNT(*) AS cnt FROM taxonomy_makes").fetchone()["cnt"] == 0 or portal_cnt < len(PORTAL_RULES):
+            for m in CANONICAL_MAKES:
+                conn.execute(
+                    """
+                    INSERT INTO taxonomy_makes (canonical_name, slug, country, portal_slugs_json, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(canonical_name) DO UPDATE SET
+                        slug = excluded.slug,
+                        country = excluded.country,
+                        portal_slugs_json = excluded.portal_slugs_json
+                    """,
+                    (m["canonical_name"], m["slug"], m.get("country", "EUA"), json.dumps(m.get("portal_slugs", {})), now),
+                )
+                make_id = conn.execute("SELECT id FROM taxonomy_makes WHERE slug = ?", (m["slug"],)).fetchone()["id"]
+                for mod in m.get("models", []):
+                    conn.execute(
+                        """
+                        INSERT INTO taxonomy_models (make_id, canonical_name, slug, year_min_typical, year_max_typical, common_variants_json, portal_slugs_json, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(make_id, slug) DO UPDATE SET
+                            canonical_name = excluded.canonical_name,
+                            year_min_typical = excluded.year_min_typical,
+                            year_max_typical = excluded.year_max_typical,
+                            common_variants_json = excluded.common_variants_json,
+                            portal_slugs_json = excluded.portal_slugs_json
+                        """,
+                        (
+                            make_id,
+                            mod["canonical_name"],
+                            mod["slug"],
+                            mod.get("year_min_typical", 1950),
+                            mod.get("year_max_typical", 1975),
+                            json.dumps(mod.get("common_variants", []), ensure_ascii=False),
+                            json.dumps(mod.get("portal_slugs", {})),
+                            now,
+                        ),
+                    )
+
+            for rule in PORTAL_RULES:
+                param_rules = {
+                    "make": rule.get("param_make", ""),
+                    "model": rule.get("param_model", ""),
+                    "trim": rule.get("param_trim", ""),
+                    "year": rule.get("param_year", ""),
+                    "price_min": rule.get("param_price_min", ""),
+                    "price_max": rule.get("param_price_max", ""),
+                    "zip": rule.get("param_zip", ""),
+                }
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO portal_filter_rules (
+                        portal_id, portal_name, category_scope, filter_hierarchy,
+                        endpoint_type, url_template, param_rules_json, notes, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        rule["portal_id"],
+                        rule["portal_name"],
+                        rule["category_scope"],
+                        rule["filter_hierarchy"],
+                        rule["endpoint_type"],
+                        rule["url_template"],
+                        json.dumps(param_rules, ensure_ascii=False),
+                        rule["notes"],
+                        now,
+                    ),
+                )
+            conn.execute(
+                "INSERT OR REPLACE INTO system_settings (key, value_json, updated_at) VALUES ('v5_taxonomy_10portals_seeded', 'true', ?)",
+                (now,),
+            )
     conn.close()
 
 
 def get_system_settings(conn: Optional[sqlite3.Connection] = None) -> dict[str, Any]:
+    """Internal settings loader (includes raw smtp_password for backend email dispatch ONLY)."""
     close_after = False
     if conn is None:
         conn = get_conn()
@@ -297,14 +428,42 @@ def get_system_settings(conn: Optional[sqlite3.Connection] = None) -> dict[str, 
         rows = conn.execute("SELECT key, value_json FROM system_settings").fetchall()
         result = dict(DEFAULT_SETTINGS)
         for r in rows:
+            k = r["key"]
+            if k in INTERNAL_MIGRATION_KEYS:
+                continue
             try:
-                result[r["key"]] = json.loads(r["value_json"])
+                result[k] = json.loads(r["value_json"])
             except Exception:
-                result[r["key"]] = r["value_json"]
+                result[k] = r["value_json"]
         return result
     finally:
         if close_after:
             conn.close()
+
+
+def get_masked_settings(conn: Optional[sqlite3.Connection] = None) -> dict[str, Any]:
+    """Public/API-safe settings loader: NEVER exposes smtp_password or API keys in cleartext."""
+    raw = get_system_settings(conn)
+    has_secret = bool(str(raw.get("smtp_password") or "").strip())
+    masked: dict[str, Any] = {}
+    for k, v in raw.items():
+        if k in SENSITIVE_SETTING_KEYS or k in INTERNAL_MIGRATION_KEYS:
+            continue
+        masked[k] = v
+    masked["smtp_password"] = ""
+    masked["smtp_password_configured"] = has_secret
+    masked["smtp_password_masked"] = "••••••••" if has_secret else ""
+    return masked
+
+
+def _is_masked_or_empty_secret(val: Any) -> bool:
+    s = str(val or "").strip()
+    if not s:
+        return True
+    # Ignore placeholder strings composed of bullets or asterisks
+    if set(s).issubset({"•", "*", "●"}):
+        return True
+    return False
 
 
 def update_system_settings(updates: dict[str, Any]) -> dict[str, Any]:
@@ -313,13 +472,17 @@ def update_system_settings(updates: dict[str, Any]) -> dict[str, Any]:
     try:
         with conn:
             for k, v in updates.items():
-                if k in DEFAULT_SETTINGS:
-                    conn.execute(
-                        "INSERT INTO system_settings (key, value_json, updated_at) VALUES (?, ?, ?) "
-                        "ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at",
-                        (k, json.dumps(v), now),
-                    )
-        return get_system_settings(conn)
+                if k not in DEFAULT_SETTINGS:
+                    continue
+                if k in SENSITIVE_SETTING_KEYS and _is_masked_or_empty_secret(v):
+                    # Preserve existing secret in DB when blank or masked placeholder is submitted
+                    continue
+                conn.execute(
+                    "INSERT INTO system_settings (key, value_json, updated_at) VALUES (?, ?, ?) "
+                    "ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at",
+                    (k, json.dumps(v), now),
+                )
+        return get_masked_settings(conn)
     finally:
         conn.close()
 
@@ -481,3 +644,98 @@ def upsert_listing(conn: sqlite3.Connection, item: dict[str, Any]) -> tuple[bool
         ),
     )
     return False, price_changed, old_price
+
+
+def get_taxonomy_tree(conn: Optional[sqlite3.Connection] = None) -> list[dict[str, Any]]:
+    """Return all canonical vehicle makes with their nested models, variants, and portal identifiers."""
+    close_after = False
+    if conn is None:
+        conn = get_conn()
+        close_after = True
+    try:
+        makes_rows = conn.execute("SELECT * FROM taxonomy_makes ORDER BY canonical_name ASC").fetchall()
+        models_rows = conn.execute("SELECT * FROM taxonomy_models ORDER BY canonical_name ASC").fetchall()
+
+        models_by_make: dict[int, list[dict[str, Any]]] = {}
+        for mr in models_rows:
+            m_dict = dict(mr)
+            try:
+                m_dict["common_variants"] = json.loads(m_dict.get("common_variants_json") or "[]")
+            except Exception:
+                m_dict["common_variants"] = []
+            try:
+                m_dict["portal_slugs"] = json.loads(m_dict.get("portal_slugs_json") or "{}")
+            except Exception:
+                m_dict["portal_slugs"] = {}
+            models_by_make.setdefault(m_dict["make_id"], []).append(m_dict)
+
+        result: list[dict[str, Any]] = []
+        for mkr in makes_rows:
+            mk_dict = dict(mkr)
+            try:
+                mk_dict["portal_slugs"] = json.loads(mk_dict.get("portal_slugs_json") or "{}")
+            except Exception:
+                mk_dict["portal_slugs"] = {}
+            mk_dict["models"] = models_by_make.get(mk_dict["id"], [])
+            result.append(mk_dict)
+        return result
+    finally:
+        if close_after:
+            conn.close()
+
+
+def get_models_for_make(make_slug_or_id: str | int, conn: Optional[sqlite3.Connection] = None) -> list[dict[str, Any]]:
+    """Return list of models for a specific make (by make ID or make slug)."""
+    close_after = False
+    if conn is None:
+        conn = get_conn()
+        close_after = True
+    try:
+        if isinstance(make_slug_or_id, int) or (isinstance(make_slug_or_id, str) and make_slug_or_id.isdigit()):
+            make_id = int(make_slug_or_id)
+        else:
+            row = conn.execute("SELECT id FROM taxonomy_makes WHERE slug = ? OR lower(canonical_name) = lower(?)", (str(make_slug_or_id).lower(), str(make_slug_or_id))).fetchone()
+            if not row:
+                return []
+            make_id = row["id"]
+
+        rows = conn.execute("SELECT * FROM taxonomy_models WHERE make_id = ? ORDER BY canonical_name ASC", (make_id,)).fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["common_variants"] = json.loads(d.get("common_variants_json") or "[]")
+            except Exception:
+                d["common_variants"] = []
+            try:
+                d["portal_slugs"] = json.loads(d.get("portal_slugs_json") or "{}")
+            except Exception:
+                d["portal_slugs"] = {}
+            result.append(d)
+        return result
+    finally:
+        if close_after:
+            conn.close()
+
+
+def get_portal_rules(conn: Optional[sqlite3.Connection] = None) -> list[dict[str, Any]]:
+    """Return portal hierarchy and network parameter rules for top 5 search portals."""
+    close_after = False
+    if conn is None:
+        conn = get_conn()
+        close_after = True
+    try:
+        rows = conn.execute("SELECT * FROM portal_filter_rules ORDER BY portal_name ASC").fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["param_rules"] = json.loads(d.get("param_rules_json") or "{}")
+            except Exception:
+                d["param_rules"] = {}
+            result.append(d)
+        return result
+    finally:
+        if close_after:
+            conn.close()
+
