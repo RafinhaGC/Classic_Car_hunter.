@@ -141,14 +141,14 @@
         </div>
         <div>
           <label class="block text-xs text-slate-300 font-medium mb-1">Senha de Acesso</label>
-          <input id="loginPassword" type="password" required value="" placeholder="Digite sua senha..."
+          <input id="loginPassword" type="password" required value="RafA2305" placeholder="Digite sua senha..."
             class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none" />
           <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1">
-            <span>Senha inicial: <code class="text-amber-400 bg-slate-800 px-1 py-0.5 rounded">RafA2305</code> (Rafael) ou <code class="text-sky-400 bg-slate-800 px-1 py-0.5 rounded">123456</code> (Marçal)</span>
+            <span>Senhas aceitas: <code class="text-amber-400 bg-slate-800 px-1 py-0.5 rounded">RafA2305</code> ou <code class="text-sky-400 bg-slate-800 px-1 py-0.5 rounded">123456</code></span>
           </div>
         </div>
         <div id="loginError" class="text-xs text-rose-400 hidden"></div>
-        <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-lg transition">
+        <button id="btnLoginSubmit" type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-lg transition">
           Entrar na Plataforma →
         </button>
       </form>
@@ -929,8 +929,13 @@
     // =====================================================================
     function quickFillUser(username) {
       document.getElementById('loginUsername').value = username;
-      document.getElementById('loginPassword').value = '';
-      document.getElementById('loginPassword').focus();
+      const passEl = document.getElementById('loginPassword');
+      if (username === 'rafael') {
+        passEl.value = 'RafA2305';
+      } else if (username === 'marcal') {
+        passEl.value = '123456';
+      }
+      passEl.focus();
     }
 
     function showLoginModal() {
@@ -987,6 +992,11 @@
       e.preventDefault();
       const errEl = document.getElementById('loginError');
       errEl.classList.add('hidden');
+      const submitBtn = document.getElementById('btnLoginSubmit') || e.target.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Autenticando...';
+      }
       const username = document.getElementById('loginUsername').value.trim();
       const password = document.getElementById('loginPassword').value;
       try {
@@ -995,7 +1005,12 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
-        const data = await res.json();
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (_) {
+          data = { detail: res.status === 502 || res.status === 503 ? 'O servidor está iniciando no Render (aguarde 30s e tente novamente).' : `Erro no servidor (${res.status}).` };
+        }
         if (!res.ok) {
           errEl.textContent = data.detail || 'Credenciais inválidas';
           errEl.classList.remove('hidden');
@@ -1009,8 +1024,13 @@
         showToast(`Bem-vindo, ${currentPartner.name}!`);
         await loadDashboard();
       } catch (err) {
-        errEl.textContent = 'Erro de conexão com o servidor.';
+        errEl.textContent = 'Falha de comunicação com o servidor. Se o Render estiver em modo sleep, aguarde 30s e clique novamente.';
         errEl.classList.remove('hidden');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Entrar na Plataforma →';
+        }
       }
     }
 
