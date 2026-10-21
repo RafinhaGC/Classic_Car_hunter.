@@ -133,7 +133,7 @@
         </div>
       </div>
 
-      <form onsubmit="handleLogin(event)" class="space-y-3.5">
+      <form onsubmit="event.preventDefault(); handleLogin(event); return false;" class="space-y-3.5">
         <div>
           <label class="block text-xs text-slate-300 font-medium mb-1">Usuário ou E-mail</label>
           <input id="loginUsername" type="text" required value="rafael"
@@ -142,10 +142,11 @@
         <div>
           <label class="block text-xs text-slate-300 font-medium mb-1">Senha de Acesso</label>
           <input id="loginPassword" type="password" required value="" autocomplete="current-password" placeholder="Digite sua senha..."
+            onkeydown="if(event.key==='Enter'){event.preventDefault();handleLogin(event);}"
             class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none" />
         </div>
         <div id="loginError" class="text-xs text-rose-400 hidden"></div>
-        <button id="btnLoginSubmit" type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-lg transition">
+        <button id="btnLoginSubmit" type="button" onclick="handleLogin(event)" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-lg transition">
           Entrar na Plataforma →
         </button>
       </form>
@@ -984,16 +985,43 @@
     }
 
     async function handleLogin(e) {
-      e.preventDefault();
+      if (e && e.preventDefault) e.preventDefault();
       const errEl = document.getElementById('loginError');
-      errEl.classList.add('hidden');
-      const submitBtn = document.getElementById('btnLoginSubmit') || e.target.querySelector('button[type="submit"]');
+      if (errEl) errEl.classList.add('hidden');
+      const submitBtn = document.getElementById('btnLoginSubmit');
       if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Autenticando...';
       }
-      const username = document.getElementById('loginUsername').value.trim();
-      const password = document.getElementById('loginPassword').value;
+      const username = (document.getElementById('loginUsername').value || '').trim();
+      const password = (document.getElementById('loginPassword').value || '');
+
+      if (!username) {
+        if (errEl) {
+          errEl.textContent = 'Digite seu usuário ou e-mail.';
+          errEl.classList.remove('hidden');
+        }
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Entrar na Plataforma →';
+        }
+        document.getElementById('loginUsername').focus();
+        return false;
+      }
+
+      if (!password) {
+        if (errEl) {
+          errEl.textContent = 'Digite sua senha de acesso.';
+          errEl.classList.remove('hidden');
+        }
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Entrar na Plataforma →';
+        }
+        document.getElementById('loginPassword').focus();
+        return false;
+      }
+
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
@@ -1007,20 +1035,31 @@
           data = { detail: res.status === 502 || res.status === 503 ? 'O servidor está iniciando no Render (aguarde 30s e tente novamente).' : `Erro no servidor (${res.status}).` };
         }
         if (!res.ok) {
-          errEl.textContent = data.detail || 'Credenciais inválidas';
-          errEl.classList.remove('hidden');
-          return;
+          if (errEl) {
+            errEl.textContent = data.detail || 'Usuário ou senha inválidos.';
+            errEl.classList.remove('hidden');
+          }
+          return false;
         }
         authToken = data.token;
         localStorage.setItem('cch_token', authToken);
         currentPartner = data.partner;
-        document.getElementById('loginOverlay').classList.add('hidden');
+        const overlay = document.getElementById('loginOverlay');
+        if (overlay) overlay.classList.add('hidden');
         updateUserHeaderUI();
         showToast(`Bem-vindo, ${currentPartner.name}!`);
-        await loadDashboard();
+        try {
+          await loadDashboard();
+        } catch (dErr) {
+          console.error('Erro ao carregar dashboard:', dErr);
+        }
+        return true;
       } catch (err) {
-        errEl.textContent = 'Falha de comunicação com o servidor. Se o Render estiver em modo sleep, aguarde 30s e clique novamente.';
-        errEl.classList.remove('hidden');
+        if (errEl) {
+          errEl.textContent = 'Falha de comunicação com o servidor: ' + (err.message || 'Verifique se o backend está ativo.');
+          errEl.classList.remove('hidden');
+        }
+        return false;
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
@@ -1091,9 +1130,6 @@
         currentPartner = null;
         localStorage.removeItem('cch_token');
         updateUserHeaderUI();
-        showLoginModal();
-        return;
-      }
         showLoginModal();
         return;
       }
