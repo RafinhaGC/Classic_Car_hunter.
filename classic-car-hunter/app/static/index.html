@@ -97,7 +97,7 @@
   <!-- ================================================================= -->
   <!-- TELA DE LOGIN                                                     -->
   <!-- ================================================================= -->
-  <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden">
+  <div id="loginOverlay" class="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-7 shadow-2xl">
       <div class="flex items-center gap-3 mb-5">
         <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg">
@@ -114,7 +114,7 @@
       </p>
 
       <div class="mb-4">
-        <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Selecionar Perfil</label>
+        <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Selecionar Perfil Rápido</label>
         <div class="grid grid-cols-2 gap-2.5">
           <button type="button" onclick="quickFillUser('rafael')" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-amber-500/30 text-left transition">
             <span class="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-bold flex items-center justify-center text-xs">RC</span>
@@ -143,6 +143,9 @@
           <label class="block text-xs text-slate-300 font-medium mb-1">Senha de Acesso</label>
           <input id="loginPassword" type="password" required value="" placeholder="Digite sua senha..."
             class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none" />
+          <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+            <span>Senha inicial: <code class="text-amber-400 bg-slate-800 px-1 py-0.5 rounded">RafA2305</code> (Rafael) ou <code class="text-sky-400 bg-slate-800 px-1 py-0.5 rounded">123456</code> (Marçal)</span>
+          </div>
         </div>
         <div id="loginError" class="text-xs text-rose-400 hidden"></div>
         <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-lg transition">
@@ -176,12 +179,12 @@
 
       <!-- Badge do Usuário Logado -->
       <div class="order-2 lg:order-4 shrink-0 flex items-center gap-2 lg:pl-2 lg:border-l lg:border-slate-300/30">
-        <div id="partnerAvatar" class="w-9 h-9 lg:w-8 lg:h-8 rounded-full bg-amber-500 text-slate-950 font-extrabold text-xs flex items-center justify-center border border-slate-300/60">
-          RC
+        <div id="partnerAvatar" class="w-9 h-9 lg:w-8 lg:h-8 rounded-full bg-slate-700 text-white font-extrabold text-xs flex items-center justify-center border border-slate-300/60">
+          ?
         </div>
         <div class="text-left hidden md:block">
-          <div id="partnerNameDisplay" class="text-xs font-bold text-white leading-tight">Rafael Campos</div>
-          <button onclick="showLoginModal()" class="text-[10px] text-slate-200 hover:underline" style="min-height:0">Trocar Conta</button>
+          <div id="partnerNameDisplay" class="text-xs font-bold text-white leading-tight">Não autenticado</div>
+          <button id="partnerAuthBtn" onclick="if(authToken){logoutUser();}else{showLoginModal();}" class="text-[10px] text-amber-300 font-semibold hover:underline" style="min-height:0">Fazer Login</button>
         </div>
       </div>
 
@@ -908,6 +911,9 @@
     }
 
     function apiHeaders() {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
       const h = { 'Content-Type': 'application/json' };
       if (authToken) h['Authorization'] = `Bearer ${authToken}`;
       return h;
@@ -928,7 +934,12 @@
     }
 
     function showLoginModal() {
-      document.getElementById('loginOverlay').classList.remove('hidden');
+      const overlay = document.getElementById('loginOverlay');
+      if (overlay) {
+        overlay.classList.remove('hidden');
+        const pass = document.getElementById('loginPassword');
+        if (pass) pass.focus();
+      }
     }
 
     async function checkAuthOnLoad() {
@@ -938,6 +949,11 @@
       } catch (e) {}
 
       if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+
+      if (!authToken) {
+        updateUserHeaderUI();
         showLoginModal();
         return false;
       }
@@ -945,15 +961,23 @@
         const res = await fetch('/api/auth/me', { headers: apiHeaders(), cache: 'no-store' });
         if (!res.ok) {
           authToken = '';
+          currentPartner = null;
           localStorage.removeItem('cch_token');
+          updateUserHeaderUI();
           showLoginModal();
           return false;
         }
         const data = await res.json();
         currentPartner = data.partner;
         updateUserHeaderUI();
+        const overlay = document.getElementById('loginOverlay');
+        if (overlay) overlay.classList.add('hidden');
         return true;
       } catch (e) {
+        authToken = '';
+        currentPartner = null;
+        localStorage.removeItem('cch_token');
+        updateUserHeaderUI();
         showLoginModal();
         return false;
       }
@@ -990,22 +1014,46 @@
       }
     }
 
+    function logoutUser() {
+      authToken = '';
+      currentPartner = null;
+      localStorage.removeItem('cch_token');
+      updateUserHeaderUI();
+      showLoginModal();
+      showToast('Você saiu da plataforma. Faça login para continuar.');
+    }
+
     function updateUserHeaderUI() {
-      if (!currentPartner) return;
       const av = document.getElementById('partnerAvatar');
       const nm = document.getElementById('partnerNameDisplay');
+      const btn = document.getElementById('partnerAuthBtn');
+      if (!currentPartner) {
+        if (av) {
+          av.textContent = '?';
+          av.style.backgroundColor = '#334155';
+          av.style.color = '#cbd5e1';
+        }
+        if (nm) nm.textContent = 'Não autenticado';
+        if (btn) btn.textContent = 'Fazer Login';
+        const adminBtns = [document.getElementById('btnAdminAudit'), document.getElementById('btnAdminAuditM')];
+        adminBtns.forEach(b => { if (b) { b.classList.add('hidden'); b.classList.remove('flex'); } });
+        return;
+      }
       const initials = currentPartner.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-      av.textContent = initials;
-      av.style.backgroundColor = fordAvatarColor(currentPartner.avatar_color);
-      av.style.color = isLightColor(fordAvatarColor(currentPartner.avatar_color)) ? '#030f27' : '#ffffff';
-      nm.textContent = currentPartner.name;
+      if (av) {
+        av.textContent = initials;
+        av.style.backgroundColor = fordAvatarColor(currentPartner.avatar_color);
+        av.style.color = isLightColor(fordAvatarColor(currentPartner.avatar_color)) ? '#030f27' : '#ffffff';
+      }
+      if (nm) nm.textContent = currentPartner.name;
+      if (btn) btn.textContent = 'Trocar Conta / Sair';
 
       // Exibe o painel de Auditoria & Config E-mail EXCLUSIVAMENTE para o Rafael Campos
       const adminBtns = [document.getElementById('btnAdminAudit'), document.getElementById('btnAdminAuditM')];
       if (isRafaelAdmin()) {
-        adminBtns.forEach(b => { b.classList.remove('hidden'); b.classList.add('flex'); });
+        adminBtns.forEach(b => { if (b) { b.classList.remove('hidden'); b.classList.add('flex'); } });
       } else {
-        adminBtns.forEach(b => { b.classList.add('hidden'); b.classList.remove('flex'); });
+        adminBtns.forEach(b => { if (b) { b.classList.add('hidden'); b.classList.remove('flex'); } });
         closePartnersModal();
       }
     }
@@ -1014,6 +1062,9 @@
     // DASHBOARD & LISTINGS
     // =====================================================================
     async function loadDashboard() {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
       if (!authToken) {
         showLoginModal();
         return;
@@ -1024,6 +1075,10 @@
         authToken = '';
         currentPartner = null;
         localStorage.removeItem('cch_token');
+        updateUserHeaderUI();
+        showLoginModal();
+        return;
+      }
         showLoginModal();
         return;
       }
@@ -1371,6 +1426,14 @@
     }
 
     async function triggerScanNow() {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        showLoginModal();
+        showToast('Faça login com seu usuário para realizar a varredura.');
+        return;
+      }
       if (!activeWatchlistId) {
         openWatchlistModal(true);
         return;
@@ -1385,6 +1448,15 @@
       showToast('Iniciando varredura ao vivo nos 10 portais dos EUA...');
       try {
         const res = await fetch(`/api/scan/${activeWatchlistId}`, { method: 'POST', headers: apiHeaders() });
+        if (res.status === 401) {
+          authToken = '';
+          currentPartner = null;
+          localStorage.removeItem('cch_token');
+          updateUserHeaderUI();
+          showLoginModal();
+          showToast('Sessão expirada. Faça login novamente.');
+          return;
+        }
         const data = await res.json();
         if (!res.ok) {
           showToast(data.detail || 'Varredura em andamento.');
@@ -1729,6 +1801,14 @@
     }
 
     function openWatchlistModal(createNew) {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        showLoginModal();
+        showToast('Faça login com seu usuário para criar ou editar pesquisas.');
+        return;
+      }
       isCreatingWatchlist = createNew;
       clearConsistencyError();
       const ownerSel = document.getElementById('wlOwnerPartnerId');
@@ -1796,6 +1876,16 @@
     async function saveWatchlistForm(e) {
       e.preventDefault();
       clearConsistencyError();
+
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        closeWatchlistModal();
+        showLoginModal();
+        showToast('Faça login com seu usuário para salvar a pesquisa.');
+        return;
+      }
 
       const makeVal = document.getElementById('wlMake').value.trim();
       const modelVal = document.getElementById('wlModelPrimary').value.trim();
@@ -1888,6 +1978,16 @@
 
       try {
         const res = await fetch(url, { method, headers: apiHeaders(), body: JSON.stringify(payload) });
+        if (res.status === 401) {
+          authToken = '';
+          currentPartner = null;
+          localStorage.removeItem('cch_token');
+          updateUserHeaderUI();
+          closeWatchlistModal();
+          showLoginModal();
+          showToast('Sessão expirada. Faça login com seu usuário e senha.');
+          return;
+        }
         const saved = await res.json();
         if (res.ok) {
           activeWatchlistId = saved.id;
@@ -1915,9 +2015,28 @@
     }
 
     async function deleteCurrentWatchlist() {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        closeWatchlistModal();
+        showLoginModal();
+        showToast('Faça login com seu usuário para gerenciar pesquisas.');
+        return;
+      }
       if (!activeWatchlistId) return;
       if (!confirm('Tem certeza que deseja excluir esta pesquisa e seus resultados?')) return;
       const res = await fetch(`/api/watchlists/${activeWatchlistId}`, { method: 'DELETE', headers: apiHeaders() });
+      if (res.status === 401) {
+        authToken = '';
+        currentPartner = null;
+        localStorage.removeItem('cch_token');
+        updateUserHeaderUI();
+        closeWatchlistModal();
+        showLoginModal();
+        showToast('Sessão expirada. Faça login novamente.');
+        return;
+      }
       if (res.ok) {
         activeWatchlistId = null;
         closeWatchlistModal();
@@ -1933,6 +2052,14 @@
     // PAINEL EXCLUSIVO DO RAFAEL: AUDITORIA, FALHAS, E-MAIL & PERFIS
     // =====================================================================
     async function openPartnersSettingsModal(initialTab = 'history') {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        showLoginModal();
+        showToast('Faça login para acessar o painel de administração.');
+        return;
+      }
       if (!isRafaelAdmin()) {
         showToast('Acesso restrito ao desenvolvedor (Rafael Campos).');
         return;
@@ -2038,6 +2165,17 @@
           headers: apiHeaders(),
           body: JSON.stringify(payload)
         });
+        if (res.status === 401) {
+          authToken = '';
+          currentPartner = null;
+          localStorage.removeItem('cch_token');
+          updateUserHeaderUI();
+          closePartnersModal();
+          showLoginModal();
+          showToast('Sessão expirada. Faça login novamente.');
+          if (btnEl) btnEl.textContent = '💾 Salvar Perfil';
+          return false;
+        }
         if (res.ok) {
           const data = await res.json();
           if (data.partner && idx !== -1) {
@@ -2134,6 +2272,16 @@
       }
 
       const res = await fetch('/api/settings', { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(payload) });
+      if (res.status === 401) {
+        authToken = '';
+        currentPartner = null;
+        localStorage.removeItem('cch_token');
+        updateUserHeaderUI();
+        closePartnersModal();
+        showLoginModal();
+        showToast('Sessão expirada. Faça login novamente.');
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         systemSettings = data.settings || systemSettings;
@@ -2142,6 +2290,9 @@
           showToast('✅ Configurações de e-mail e calculadora salvas com segurança!');
           await loadDashboard();
         }
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Erro ao salvar configurações.');
       }
     }
 
@@ -2203,6 +2354,14 @@
     // MODAL DE DISPARO DE RELATÓRIO POR E-MAIL
     // =====================================================================
     function openSendAlertModal(isTest = false) {
+      if (!authToken) {
+        authToken = localStorage.getItem('cch_token') || '';
+      }
+      if (!authToken || !currentPartner) {
+        showLoginModal();
+        showToast('Faça login com seu usuário para enviar relatórios por e-mail.');
+        return;
+      }
       if (!activeWatchlistId && allWatchlists.length > 0) {
         activeWatchlistId = allWatchlists[0].id;
       }
@@ -2231,29 +2390,43 @@
       const pidVal = document.getElementById('manualNotifyPartnerSelect').value;
       const scope = document.getElementById('manualNotifyScope').value;
 
-      const res = await fetch('/api/notify/send', {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify({
-          watchlist_id: activeWatchlistId,
-          partner_id: pidVal ? parseInt(pidVal, 10) : null,
-          channels: ['email'],
-          only_new_interesting: scope === 'new_interesting',
-          is_test: isTest
-        })
-      });
-      const data = await res.json();
-      const results = data.results || [];
-      const emailRes = results[0];
-      if (emailRes) {
-        document.getElementById('alertDispatchResultBox').classList.remove('hidden');
-        const statusLines = results.map(r => `E-MAIL (${r.partner_name}): ${r.detail}`).join(' | ');
-        const statusEl = document.getElementById('alertDispatchStatusText');
-        statusEl.textContent = statusLines;
-        statusEl.className = emailRes.status === 'sent' ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
-        document.getElementById('alertPreviewTextarea').value = emailRes.message_preview || '';
+      try {
+        const res = await fetch('/api/notify/send', {
+          method: 'POST',
+          headers: apiHeaders(),
+          body: JSON.stringify({
+            watchlist_id: activeWatchlistId,
+            partner_id: pidVal ? parseInt(pidVal, 10) : null,
+            channels: ['email'],
+            only_new_interesting: scope === 'new_interesting',
+            is_test: isTest
+          })
+        });
+        if (res.status === 401) {
+          authToken = '';
+          currentPartner = null;
+          localStorage.removeItem('cch_token');
+          updateUserHeaderUI();
+          closeSendAlertModal();
+          showLoginModal();
+          showToast('Sessão expirada. Faça login novamente.');
+          return;
+        }
+        const data = await res.json();
+        const results = data.results || [];
+        const emailRes = results[0];
+        if (emailRes) {
+          document.getElementById('alertDispatchResultBox').classList.remove('hidden');
+          const statusLines = results.map(r => `E-MAIL (${r.partner_name}): ${r.detail}`).join(' | ');
+          const statusEl = document.getElementById('alertDispatchStatusText');
+          statusEl.textContent = statusLines;
+          statusEl.className = emailRes.status === 'sent' ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+          document.getElementById('alertPreviewTextarea').value = emailRes.message_preview || '';
+        }
+        showToast('Processamento de e-mail registrado na auditoria!');
+      } catch (err) {
+        showToast('Erro ao processar envio: ' + err.message);
       }
-      showToast('Processamento de e-mail registrado na auditoria!');
     }
 
     function copyPreviewText() {
