@@ -1,1 +1,0 @@
-"""Classic Car Hunter package."""
