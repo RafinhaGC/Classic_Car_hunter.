@@ -12,13 +12,16 @@ from urllib.parse import unquote
 from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from app.database import (
     create_session_token,
     get_conn,
+    get_models_for_make,
     get_partner_by_token,
+    get_portal_rules,
     get_system_settings,
+    get_taxonomy_tree,
     hash_password,
     init_db,
     update_system_settings,
@@ -374,6 +377,34 @@ class WatchlistUpdateModel(BaseModel):
     min_alert_score: int = 55
     auto_notify_email: int = 1
     auto_notify_whatsapp: int = 0
+
+    @model_validator(mode="after")
+    def validate_vehicle_consistency(self) -> "WatchlistUpdateModel":
+        clean_make = (self.make or "").strip()
+        clean_model = (self.model_primary or "").strip()
+        if not clean_make:
+            raise ValueError("A marca do veículo (Make) é obrigatória para iniciar a busca.")
+        if not clean_model:
+            raise ValueError("O modelo específico do veículo (Model) é obrigatório para iniciar a busca.")
+
+        if self.year_min < 1900 or self.year_min > 2026:
+            raise ValueError(f"Ano inicial ({self.year_min}) inválido. Deve estar entre 1900 e 2026.")
+        if self.year_max < 1900 or self.year_max > 2026:
+            raise ValueError(f"Ano final ({self.year_max}) inválido. Deve estar entre 1900 e 2026.")
+        if self.year_min > self.year_max:
+            raise ValueError(
+                f"Inconsistência cronológica: Ano inicial ({self.year_min}) não pode ser maior que o ano final ({self.year_max})."
+            )
+
+        if self.price_min < 0:
+            raise ValueError("O preço mínimo não pode ser negativo.")
+        if self.price_max < 0:
+            raise ValueError("O preço máximo não pode ser negativo.")
+        if self.price_min > self.price_max:
+            raise ValueError(
+                f"Inconsistência financeira: Preço mínimo (${self.price_min:,}) não pode ser maior que o preço máximo (${self.price_max:,})."
+            )
+        return self
 
 
 class ListingPatchModel(BaseModel):
@@ -789,6 +820,24 @@ def get_dashboard(watchlist_id: Optional[int] = None) -> dict[str, Any]:
         }
     finally:
         conn.close()
+
+
+@app.get("/api/taxonomy")
+def get_taxonomy() -> dict[str, Any]:
+    """Return all canonical makes, nested models, common variants, and portal slugs."""
+    return {"makes": get_taxonomy_tree()}
+
+
+@app.get("/api/taxonomy/models")
+def get_taxonomy_models(make: str = Query(...)) -> dict[str, Any]:
+    """Return models for a specific make (by slug or name)."""
+    return {"make": make, "models": get_models_for_make(make)}
+
+
+@app.get("/api/taxonomy/portals")
+def get_taxonomy_portals() -> dict[str, Any]:
+    """Return reverse-engineered portal filter rules, hierarchy, and parameter specs."""
+    return {"portals": get_portal_rules()}
 
 
 @app.get("/api/listings")

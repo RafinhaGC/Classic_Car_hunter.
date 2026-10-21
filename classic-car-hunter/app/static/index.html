@@ -213,6 +213,10 @@
           📧 Enviar Relatório por E-mail
         </button>
 
+        <button onclick="openPortalRulesModal()" title="Ver hierarquia de filtros e engenharia reversa dos 5 principais portais dos EUA" class="flex items-center gap-1.5 bg-blue-900/40 hover:bg-blue-800 text-blue-100 border border-blue-400/40 font-semibold text-xs px-3 py-2 rounded-xl transition">
+          🌐 Filtros dos 5 Portais
+        </button>
+
         <!-- Botão exclusivo do Rafael Campos (Desenvolvedor / Admin) -->
         <button id="btnAdminAudit" onclick="openPartnersSettingsModal('history')" class="hidden items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-100 border border-slate-300/50 text-xs px-3 py-2 rounded-xl transition font-semibold">
           🛡️ Auditoria & Config E-mail
@@ -412,16 +416,19 @@
         <button onclick="closeWatchlistModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
       </div>
 
-      <!-- Exemplos Rápidos Opcionais -->
-      <div class="mt-3">
-        <span class="text-[11px] text-slate-400 font-semibold block mb-1.5">⚡ Preenchimento Rápido Opcional (ou digite qualquer veículo abaixo):</span>
-        <div class="flex flex-wrap gap-1.5">
-          <button type="button" onclick="applyPreset('eureka')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30">1960 Cadillac Eureka</button>
-          <button type="button" onclick="applyPreset('mustang')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1967 Ford Mustang Fastback</button>
-          <button type="button" onclick="applyPreset('belair')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1957 Chevrolet Bel Air</button>
-          <button type="button" onclick="applyPreset('corvette')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1963 Chevrolet Corvette C2</button>
-          <button type="button" onclick="applyPreset('porsche')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1972 Porsche 911</button>
-        </div>
+      <!-- Exemplos Rápidos Opcionais & Link das Regras -->
+      <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <span class="text-[11px] text-slate-300 font-semibold">⚡ Preenchimento Rápido Padronizado:</span>
+        <button type="button" onclick="openPortalRulesModal()" class="text-[11px] px-2.5 py-1 rounded-lg bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-500/50 font-medium transition">
+          🔍 Hierarquia & Regras dos 5 Portais
+        </button>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        <button type="button" onclick="applyPreset('eureka')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30">1960 Cadillac Eureka</button>
+        <button type="button" onclick="applyPreset('mustang')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1967 Ford Mustang Fastback</button>
+        <button type="button" onclick="applyPreset('belair')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1957 Chevrolet Bel Air</button>
+        <button type="button" onclick="applyPreset('corvette')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1963 Chevrolet Corvette C2</button>
+        <button type="button" onclick="applyPreset('porsche')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">1972 Porsche 911</button>
       </div>
 
       <form onsubmit="saveWatchlistForm(event)" class="space-y-4 mt-4 text-xs">
@@ -444,16 +451,43 @@
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
           </div>
 
+          <!-- SELETOR DEPENDENTE 1: MARCA PADRONIZADA -->
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">Marca (Make)</label>
-            <input id="wlMake" type="text" required placeholder="Ex: Cadillac, Ford, Chevrolet, Porsche..."
-              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-slate-200 font-semibold">1. Marca (Make)</label>
+              <span class="text-[10px] text-amber-400 font-mono">1º Nível Taxonomia</span>
+            </div>
+            <select id="wlMakeSelect" onchange="onTaxonomyMakeChange()" required
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-medium focus:border-amber-400 focus:ring-1 focus:ring-amber-400">
+              <option value="">-- Carregando Marcas... --</option>
+            </select>
+            <input id="wlMakeCustom" type="text" oninput="onCustomMakeInput()" placeholder="Digite a marca personalizada..."
+              class="w-full bg-slate-950 border border-amber-500/70 rounded-xl px-3 py-2 text-white mt-1.5 hidden" />
+            <input type="hidden" id="wlMake" />
           </div>
 
+          <!-- SELETOR DEPENDENTE 2: MODELO VÁLIDO CARREGADO DINAMICAMENTE -->
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">Modelo Específico</label>
-            <input id="wlModelPrimary" type="text" required placeholder="Ex: Eureka, Mustang, Bel Air, 911..."
-              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-slate-200 font-semibold">2. Modelo Válido (Model)</label>
+              <span class="text-[10px] text-amber-400 font-mono">2º Nível Dependente</span>
+            </div>
+            <select id="wlModelSelect" onchange="onTaxonomyModelChange()" disabled required
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-medium focus:border-amber-400 focus:ring-1 focus:ring-amber-400 disabled:opacity-40 disabled:cursor-not-allowed">
+              <option value="">-- Selecione uma marca primeiro --</option>
+            </select>
+            <input id="wlModelCustom" type="text" oninput="onCustomModelInput()" placeholder="Digite o modelo específico..."
+              class="w-full bg-slate-950 border border-amber-500/70 rounded-xl px-3 py-2 text-white mt-1.5 hidden" />
+            <input type="hidden" id="wlModelPrimary" />
+          </div>
+
+          <!-- SUGESTÕES RÁPIDAS DE VERSÕES / TRIMS SUGERIDOS -->
+          <div id="wlVariantsBox" class="sm:col-span-2 hidden bg-slate-900/90 border border-slate-700/80 rounded-xl p-3">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[11px] font-bold text-slate-200">💡 3. Versões & Trims Sugeridos (clique para alternar nas palavras-chave):</span>
+              <span id="wlYearSuggestionBadge" class="text-amber-400 font-mono text-[10px] bg-amber-950/60 border border-amber-600/40 px-2 py-0.5 rounded-full"></span>
+            </div>
+            <div id="wlVariantPills" class="flex flex-wrap gap-1.5"></div>
           </div>
 
           <div class="sm:col-span-2">
@@ -556,6 +590,12 @@
               <input id="wlMinAlertScore" type="number" value="55" min="10" max="95" class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-center" />
             </div>
           </div>
+        </div>
+
+        <!-- Alerta de Inconsistência de Dados (Validação Prévia do Formulário) -->
+        <div id="wlConsistencyAlert" class="hidden p-3 bg-red-950/80 border border-red-500/80 rounded-xl text-red-200 text-xs flex items-center gap-2">
+          <span class="text-base">⚠️</span>
+          <div id="wlConsistencyAlertText" class="flex-1 font-medium"></div>
         </div>
 
         <div class="flex items-center justify-between pt-2">
@@ -789,6 +829,30 @@
     </div>
   </div>
 
+  <!-- ================================================================= -->
+  <!-- MODAL 5: HIERARQUIA DE BUSCA & REGRAS DOS 5 PRINCIPAIS PORTAIS     -->
+  <!-- ================================================================= -->
+  <div id="portalRulesModal" class="modal-shell fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col p-6 shadow-2xl space-y-4 text-xs">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div>
+          <span class="text-[10px] uppercase tracking-widest text-amber-400 font-bold">Engenharia Reversa • DevTools Network Analysis</span>
+          <h2 class="text-base font-extrabold text-white">Hierarquia de Filtros & Mapeamento dos 5 Principais Portais dos EUA</h2>
+        </div>
+        <button onclick="closePortalRulesModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <div class="overflow-y-auto flex-1 space-y-3 pr-1" id="portalRulesListContainer">
+        <!-- Preenchido dinamicamente via JS a partir de /api/taxonomy/portals -->
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+        <span class="text-slate-400 text-[11px]">Os seletores dependentes do app formatam automaticamente os identificadores aceitos por cada portal.</span>
+        <button type="button" onclick="closePortalRulesModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl bg-slate-900 border border-amber-500/50 text-xs font-semibold text-white shadow-2xl hidden"></div>
 
@@ -799,6 +863,8 @@
     let allPartners = [];
     let allWatchlists = [];
     let activeWatchlistId = null;
+    let taxonomyMakes = [];
+    let portalRules = [];
     let systemSettings = {};
     let currentTierFilter = 'all';
     let currentSourceFilter = 'all';
@@ -931,6 +997,10 @@
       allPartners = data.partners || [];
       allWatchlists = data.watchlists || [];
       systemSettings = data.settings || {};
+
+      if (taxonomyMakes.length === 0) {
+        await loadTaxonomy();
+      }
 
       // Sincroniza backup local de e-mail/configurações caso o container em nuvem tenha reiniciado
       try {
@@ -1345,12 +1415,283 @@
       document.getElementById('fixedHoursBox').classList.toggle('hidden', mode !== 'fixed_hours');
     }
 
+    // =====================================================================
+    // TAXONOMIA, SELETORES DEPENDENTES & ENGENHARIA REVERSA DOS 5 PORTAIS
+    // =====================================================================
+    async function loadTaxonomy() {
+      try {
+        const [resTax, resPortals] = await Promise.all([
+          fetch('/api/taxonomy', { headers: apiHeaders(), cache: 'no-store' }),
+          fetch('/api/taxonomy/portals', { headers: apiHeaders(), cache: 'no-store' })
+        ]);
+        if (resTax.ok) {
+          const d = await resTax.json();
+          taxonomyMakes = d.makes || [];
+          populateMakeDropdown();
+        }
+        if (resPortals.ok) {
+          const dp = await resPortals.json();
+          portalRules = dp.portals || [];
+          renderPortalRulesModal();
+        }
+      } catch (err) {
+        console.warn('Erro ao carregar taxonomia:', err);
+      }
+    }
+
+    function populateMakeDropdown(selectedMake = '') {
+      const sel = document.getElementById('wlMakeSelect');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">-- Selecione uma Marca Padronizada --</option>' +
+        taxonomyMakes.map(m => `<option value="${m.canonical_name}">${m.canonical_name} (${m.country})</option>`).join('') +
+        '<option value="__custom__">➕ [ Outro / Digitar Marca Personalizada... ]</option>';
+      if (selectedMake) {
+        const found = taxonomyMakes.find(m => m.canonical_name.toLowerCase() === selectedMake.toLowerCase());
+        if (found) {
+          sel.value = found.canonical_name;
+          document.getElementById('wlMake').value = found.canonical_name;
+          document.getElementById('wlMakeCustom').classList.add('hidden');
+        } else {
+          sel.value = '__custom__';
+          document.getElementById('wlMake').value = selectedMake;
+          document.getElementById('wlMakeCustom').value = selectedMake;
+          document.getElementById('wlMakeCustom').classList.remove('hidden');
+        }
+      }
+    }
+
+    function onTaxonomyMakeChange(targetModel = '') {
+      clearConsistencyError();
+      const sel = document.getElementById('wlMakeSelect');
+      const customInput = document.getElementById('wlMakeCustom');
+      const hiddenMake = document.getElementById('wlMake');
+      const modelSel = document.getElementById('wlModelSelect');
+      const modelCustom = document.getElementById('wlModelCustom');
+      const hiddenModel = document.getElementById('wlModelPrimary');
+      const variantsBox = document.getElementById('wlVariantsBox');
+
+      const val = sel.value;
+      if (val === '__custom__') {
+        customInput.classList.remove('hidden');
+        customInput.focus();
+        hiddenMake.value = customInput.value.trim();
+        modelSel.disabled = false;
+        modelSel.innerHTML = '<option value="__custom__">➕ [ Digitar Modelo Personalizado ]</option>';
+        modelSel.value = '__custom__';
+        modelCustom.classList.remove('hidden');
+        hiddenModel.value = modelCustom.value.trim();
+        variantsBox.classList.add('hidden');
+        return;
+      }
+
+      customInput.classList.add('hidden');
+      if (!val) {
+        hiddenMake.value = '';
+        modelSel.disabled = true;
+        modelSel.innerHTML = '<option value="">-- Selecione uma marca primeiro --</option>';
+        modelCustom.classList.add('hidden');
+        hiddenModel.value = '';
+        variantsBox.classList.add('hidden');
+        return;
+      }
+
+      hiddenMake.value = val;
+      const makeObj = taxonomyMakes.find(m => m.canonical_name.toLowerCase() === val.toLowerCase());
+      const models = (makeObj && makeObj.models) ? makeObj.models : [];
+
+      modelSel.disabled = false;
+      modelSel.innerHTML = '<option value="">-- Selecione um Modelo Válido --</option>' +
+        models.map(m => `<option value="${m.canonical_name}">${m.canonical_name} (${m.year_min_typical}–${m.year_max_typical})</option>`).join('') +
+        '<option value="__custom__">➕ [ Outro / Digitar Modelo Personalizado... ]</option>';
+
+      if (targetModel) {
+        const foundMod = models.find(m => m.canonical_name.toLowerCase() === targetModel.toLowerCase());
+        if (foundMod) {
+          modelSel.value = foundMod.canonical_name;
+          modelCustom.classList.add('hidden');
+          hiddenModel.value = foundMod.canonical_name;
+          onTaxonomyModelChange();
+        } else {
+          modelSel.value = '__custom__';
+          modelCustom.classList.remove('hidden');
+          modelCustom.value = targetModel;
+          hiddenModel.value = targetModel;
+          variantsBox.classList.add('hidden');
+        }
+      } else {
+        modelCustom.classList.add('hidden');
+        hiddenModel.value = '';
+        variantsBox.classList.add('hidden');
+      }
+    }
+
+    function onTaxonomyModelChange() {
+      clearConsistencyError();
+      const makeSel = document.getElementById('wlMakeSelect');
+      const modelSel = document.getElementById('wlModelSelect');
+      const modelCustom = document.getElementById('wlModelCustom');
+      const hiddenModel = document.getElementById('wlModelPrimary');
+      const variantsBox = document.getElementById('wlVariantsBox');
+      const yearBadge = document.getElementById('wlYearSuggestionBadge');
+
+      const val = modelSel.value;
+      if (val === '__custom__') {
+        modelCustom.classList.remove('hidden');
+        modelCustom.focus();
+        hiddenModel.value = modelCustom.value.trim();
+        variantsBox.classList.add('hidden');
+        return;
+      }
+
+      modelCustom.classList.add('hidden');
+      if (!val) {
+        hiddenModel.value = '';
+        variantsBox.classList.add('hidden');
+        return;
+      }
+
+      hiddenModel.value = val;
+
+      const makeObj = taxonomyMakes.find(m => m.canonical_name.toLowerCase() === makeSel.value.toLowerCase());
+      const modelObj = makeObj ? (makeObj.models || []).find(m => m.canonical_name.toLowerCase() === val.toLowerCase()) : null;
+
+      if (modelObj) {
+        if (modelObj.year_min_typical && modelObj.year_max_typical) {
+          document.getElementById('wlYearMin').value = modelObj.year_min_typical;
+          document.getElementById('wlYearMax').value = modelObj.year_max_typical;
+          yearBadge.textContent = `Época de Ouro: ${modelObj.year_min_typical}–${modelObj.year_max_typical}`;
+        } else {
+          yearBadge.textContent = '';
+        }
+
+        if (isCreatingWatchlist) {
+          const currentTitle = document.getElementById('wlName').value.trim();
+          if (!currentTitle || currentTitle.startsWith(makeSel.value)) {
+            document.getElementById('wlName').value = `${makeObj.canonical_name} ${modelObj.canonical_name} ${modelObj.year_min_typical}–${modelObj.year_max_typical}`;
+          }
+        }
+
+        const variants = modelObj.common_variants || [];
+        if (variants.length > 0) {
+          variantsBox.classList.remove('hidden');
+          renderVariantPills(variants);
+        } else {
+          variantsBox.classList.add('hidden');
+        }
+      } else {
+        variantsBox.classList.add('hidden');
+      }
+    }
+
+    function renderVariantPills(variants) {
+      const container = document.getElementById('wlVariantPills');
+      const kwInput = document.getElementById('wlKeywords');
+      const currentKws = kwInput.value.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+
+      container.innerHTML = variants.map(v => {
+        const isActive = currentKws.includes(v.toLowerCase());
+        const activeClass = isActive
+          ? 'bg-amber-500 text-slate-950 font-extrabold border-amber-400 shadow-sm'
+          : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white';
+        return `<button type="button" onclick="toggleVariantKeyword('${v.replace(/'/g, "\\'")}')" class="text-[11px] px-2.5 py-1 rounded-lg border transition ${activeClass}">
+          ${isActive ? '✓ ' : '+ '}${v}
+        </button>`;
+      }).join('');
+    }
+
+    function toggleVariantKeyword(variant) {
+      const kwInput = document.getElementById('wlKeywords');
+      let currentKws = kwInput.value.split(',').map(s => s.trim()).filter(Boolean);
+      const vLower = variant.toLowerCase();
+      const existingIdx = currentKws.findIndex(k => k.toLowerCase() === vLower);
+
+      if (existingIdx >= 0) {
+        currentKws.splice(existingIdx, 1);
+      } else {
+        currentKws.push(variant);
+      }
+      kwInput.value = currentKws.join(', ');
+
+      const makeObj = taxonomyMakes.find(m => m.canonical_name.toLowerCase() === document.getElementById('wlMakeSelect').value.toLowerCase());
+      const modelObj = makeObj ? (makeObj.models || []).find(m => m.canonical_name.toLowerCase() === document.getElementById('wlModelSelect').value.toLowerCase()) : null;
+      if (modelObj && modelObj.common_variants) {
+        renderVariantPills(modelObj.common_variants);
+      }
+    }
+
+    function onCustomMakeInput() {
+      document.getElementById('wlMake').value = document.getElementById('wlMakeCustom').value.trim();
+    }
+    function onCustomModelInput() {
+      document.getElementById('wlModelPrimary').value = document.getElementById('wlModelCustom').value.trim();
+    }
+
+    function showConsistencyError(msg) {
+      const alertBox = document.getElementById('wlConsistencyAlert');
+      const textEl = document.getElementById('wlConsistencyAlertText');
+      textEl.textContent = msg;
+      alertBox.classList.remove('hidden');
+      alertBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    function clearConsistencyError() {
+      const alertBox = document.getElementById('wlConsistencyAlert');
+      if (alertBox) alertBox.classList.add('hidden');
+    }
+
+    function openPortalRulesModal() {
+      renderPortalRulesModal();
+      document.getElementById('portalRulesModal').classList.remove('hidden');
+    }
+    function closePortalRulesModal() {
+      document.getElementById('portalRulesModal').classList.add('hidden');
+    }
+
+    function renderPortalRulesModal() {
+      const container = document.getElementById('portalRulesListContainer');
+      if (!container) return;
+      if (portalRules.length === 0) {
+        container.innerHTML = '<div class="text-slate-400 p-4 text-center">Carregando especificações de rede dos portais...</div>';
+        return;
+      }
+      container.innerHTML = portalRules.map(p => `
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 font-mono">${p.portal_id.toUpperCase()}</span>
+              <span class="font-extrabold text-white text-sm">${p.portal_name}</span>
+            </div>
+            <span class="text-[11px] text-sky-400 font-mono">${p.category_scope || 'Veículos Clássicos'}</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-[11px]">
+            <div>
+              <span class="text-slate-400 block font-semibold mb-0.5">Hierarquia Exata de Filtros:</span>
+              <span class="text-amber-200 font-medium">${p.filter_hierarchy}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block font-semibold mb-0.5">Tipo de Endpoint / Estrutura:</span>
+              <span class="text-slate-200 font-mono">${p.endpoint_type}</span>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 rounded-lg p-2.5 font-mono text-[11px] text-slate-300 break-all border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Parâmetros Enviados via Network / URL:</span>
+            ${p.url_template}
+          </div>
+
+          <div class="text-[11px] text-slate-300 bg-sky-950/30 border border-sky-800/40 rounded-lg p-2.5">
+            <strong class="text-sky-300">Regra de Engenharia Reversa:</strong> ${p.notes}
+          </div>
+        </div>
+      `).join('');
+    }
+
     function applyPreset(key) {
       const presets = {
         eureka: {
           name: 'Cadillac Eureka 1960 ($20k–$40k | Deerfield Beach)',
           make: 'Cadillac', model: 'Eureka',
-          kw: 'eureka, hearse, ambulance, commercial chassis, flower car, miller meteor, superior, funeral coach',
+          kw: 'eureka, hearse, ambulance, commercial chassis, flower car, funeral coach',
           ymin: 1960, ymax: 1960, pmin: 20000, pmax: 40000
         },
         mustang: {
@@ -1381,8 +1722,8 @@
       const p = presets[key];
       if (!p) return;
       document.getElementById('wlName').value = p.name;
-      document.getElementById('wlMake').value = p.make;
-      document.getElementById('wlModelPrimary').value = p.model;
+      populateMakeDropdown(p.make);
+      onTaxonomyMakeChange(p.model);
       document.getElementById('wlKeywords').value = p.kw;
       document.getElementById('wlYearMin').value = p.ymin;
       document.getElementById('wlYearMax').value = p.ymax;
@@ -1392,6 +1733,7 @@
 
     function openWatchlistModal(createNew) {
       isCreatingWatchlist = createNew;
+      clearConsistencyError();
       const ownerSel = document.getElementById('wlOwnerPartnerId');
       ownerSel.innerHTML = allPartners.map(p => `<option value="${p.id}">${p.name} (${p.role})</option>`).join('');
 
@@ -1401,8 +1743,8 @@
         delBtn.classList.add('hidden');
         document.getElementById('wlName').value = '';
         document.getElementById('wlClientName').value = '';
-        document.getElementById('wlMake').value = '';
-        document.getElementById('wlModelPrimary').value = '';
+        populateMakeDropdown('');
+        onTaxonomyMakeChange('');
         document.getElementById('wlKeywords').value = '';
         document.getElementById('wlYearMin').value = 1960;
         document.getElementById('wlYearMax').value = 1970;
@@ -1426,8 +1768,8 @@
         delBtn.classList.remove('hidden');
         document.getElementById('wlName').value = wl.name || '';
         document.getElementById('wlClientName').value = wl.client_name || '';
-        document.getElementById('wlMake').value = wl.make || '';
-        document.getElementById('wlModelPrimary').value = wl.model_primary || '';
+        populateMakeDropdown(wl.make || '');
+        onTaxonomyMakeChange(wl.model_primary || '');
         document.getElementById('wlKeywords').value = wl.related_keywords || '';
         document.getElementById('wlYearMin').value = wl.year_min || 1960;
         document.getElementById('wlYearMax').value = wl.year_max || 1970;
@@ -1451,26 +1793,84 @@
 
     function closeWatchlistModal() {
       document.getElementById('watchlistModal').classList.add('hidden');
+      clearConsistencyError();
     }
 
     async function saveWatchlistForm(e) {
       e.preventDefault();
+      clearConsistencyError();
+
+      const makeVal = document.getElementById('wlMake').value.trim();
+      const modelVal = document.getElementById('wlModelPrimary').value.trim();
+      const ymin = parseInt(document.getElementById('wlYearMin').value, 10);
+      const ymax = parseInt(document.getElementById('wlYearMax').value, 10);
+      const pmin = parseInt(document.getElementById('wlPriceMin').value, 10);
+      const pmax = parseInt(document.getElementById('wlPriceMax').value, 10);
+
+      // Validação Estrita de Consistência Pré-Envio
+      if (!makeVal) {
+        showConsistencyError('Selecione uma marca padronizada ou digite o nome da marca.');
+        document.getElementById('wlMakeSelect').focus();
+        return;
+      }
+      if (!modelVal) {
+        showConsistencyError('Selecione um modelo válido carregado para a marca ou digite o modelo específico.');
+        document.getElementById('wlModelSelect').focus();
+        return;
+      }
+      if (isNaN(ymin) || ymin < 1900 || ymin > 2026) {
+        showConsistencyError(`Ano inicial inválido (${ymin || 'em branco'}). Deve estar entre 1900 e 2026.`);
+        document.getElementById('wlYearMin').focus();
+        return;
+      }
+      if (isNaN(ymax) || ymax < 1900 || ymax > 2026) {
+        showConsistencyError(`Ano final inválido (${ymax || 'em branco'}). Deve estar entre 1900 e 2026.`);
+        document.getElementById('wlYearMax').focus();
+        return;
+      }
+      if (ymin > ymax) {
+        showConsistencyError(`Inconsistência Cronológica: O ano inicial (${ymin}) não pode ser maior que o ano final (${ymax}). Corrija a faixa de anos.`);
+        document.getElementById('wlYearMin').focus();
+        return;
+      }
+      if (isNaN(pmin) || pmin < 0) {
+        showConsistencyError('O preço mínimo alvo deve ser maior ou igual a zero.');
+        document.getElementById('wlPriceMin').focus();
+        return;
+      }
+      if (isNaN(pmax) || pmax < 0) {
+        showConsistencyError('O preço máximo alvo deve ser maior ou igual a zero.');
+        document.getElementById('wlPriceMax').focus();
+        return;
+      }
+      if (pmin > pmax) {
+        showConsistencyError(`Inconsistência Financeira: O preço mínimo ($ ${pmin.toLocaleString('en-US')}) não pode ser maior que o preço máximo ($ ${pmax.toLocaleString('en-US')}).`);
+        document.getElementById('wlPriceMin').focus();
+        return;
+      }
+
+      let titleVal = document.getElementById('wlName').value.trim();
+      if (!titleVal) {
+        titleVal = `${makeVal} ${modelVal} ${ymin}${ymin !== ymax ? '–' + ymax : ''}`;
+        document.getElementById('wlName').value = titleVal;
+      }
+
       const schedMode = document.getElementById('wlScheduleMode').value;
       const runsVal = schedMode === 'times_per_week'
         ? parseInt(document.getElementById('wlRunsPerWeek').value, 10)
         : parseInt(document.getElementById('wlRunsPerDay').value, 10);
 
       const payload = {
-        name: document.getElementById('wlName').value.trim(),
+        name: titleVal,
         client_name: document.getElementById('wlClientName').value.trim(),
         owner_partner_id: parseInt(document.getElementById('wlOwnerPartnerId').value, 10),
-        make: document.getElementById('wlMake').value.trim(),
-        model_primary: document.getElementById('wlModelPrimary').value.trim(),
+        make: makeVal,
+        model_primary: modelVal,
         related_keywords: document.getElementById('wlKeywords').value.trim(),
-        year_min: parseInt(document.getElementById('wlYearMin').value, 10),
-        year_max: parseInt(document.getElementById('wlYearMax').value, 10),
-        price_min: parseInt(document.getElementById('wlPriceMin').value, 10),
-        price_max: parseInt(document.getElementById('wlPriceMax').value, 10),
+        year_min: ymin,
+        year_max: ymax,
+        price_min: pmin,
+        price_max: pmax,
         target_city: document.getElementById('wlCity').value.trim(),
         target_state: document.getElementById('wlState').value.trim().toUpperCase(),
         target_zip: document.getElementById('wlZip').value.trim(),
@@ -1488,17 +1888,32 @@
 
       const url = isCreatingWatchlist ? '/api/watchlists' : `/api/watchlists/${activeWatchlistId}`;
       const method = isCreatingWatchlist ? 'POST' : 'PUT';
-      const res = await fetch(url, { method, headers: apiHeaders(), body: JSON.stringify(payload) });
-      const saved = await res.json();
-      if (res.ok) {
-        activeWatchlistId = saved.id;
-        closeWatchlistModal();
-        await loadDashboard();
-        if (isCreatingWatchlist) {
-          await triggerScanNow();
+
+      try {
+        const res = await fetch(url, { method, headers: apiHeaders(), body: JSON.stringify(payload) });
+        const saved = await res.json();
+        if (res.ok) {
+          activeWatchlistId = saved.id;
+          closeWatchlistModal();
+          await loadDashboard();
+          if (isCreatingWatchlist) {
+            await triggerScanNow();
+          } else {
+            showToast('Configurações da pesquisa atualizadas com sucesso!');
+          }
         } else {
-          showToast('Configurações da pesquisa atualizadas!');
+          let errMsg = 'Erro ao salvar pesquisa.';
+          if (saved.detail) {
+            if (Array.isArray(saved.detail)) {
+              errMsg = saved.detail.map(d => d.msg || d.loc?.join('.')).join(' | ');
+            } else {
+              errMsg = saved.detail;
+            }
+          }
+          showConsistencyError('Erro de Validação: ' + errMsg);
         }
+      } catch (err) {
+        showConsistencyError('Falha de conexão com o servidor: ' + err.message);
       }
     }
 

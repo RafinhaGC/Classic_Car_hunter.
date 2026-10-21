@@ -9,6 +9,8 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from app.taxonomy import CANONICAL_MAKES, PORTAL_RULES, resolve_portal_slugs
+
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hunter.db")
 
 
@@ -216,6 +218,41 @@ def init_db() -> None:
                 error_message TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS taxonomy_makes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                canonical_name TEXT NOT NULL UNIQUE,
+                slug TEXT NOT NULL UNIQUE,
+                country TEXT NOT NULL DEFAULT 'EUA',
+                portal_slugs_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS taxonomy_models (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                make_id INTEGER NOT NULL,
+                canonical_name TEXT NOT NULL,
+                slug TEXT NOT NULL,
+                year_min_typical INTEGER NOT NULL DEFAULT 1950,
+                year_max_typical INTEGER NOT NULL DEFAULT 1975,
+                common_variants_json TEXT NOT NULL DEFAULT '[]',
+                portal_slugs_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(make_id) REFERENCES taxonomy_makes(id) ON DELETE CASCADE,
+                UNIQUE(make_id, slug)
+            );
+
+            CREATE TABLE IF NOT EXISTS portal_filter_rules (
+                portal_id TEXT PRIMARY KEY,
+                portal_name TEXT NOT NULL,
+                category_scope TEXT NOT NULL,
+                filter_hierarchy TEXT NOT NULL,
+                endpoint_type TEXT NOT NULL,
+                url_template TEXT NOT NULL,
+                param_rules_json TEXT NOT NULL DEFAULT '{}',
+                notes TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
             """
         )
 
@@ -283,6 +320,80 @@ def init_db() -> None:
             conn.execute("DELETE FROM listings WHERE watchlist_id NOT IN (SELECT id FROM watchlists)")
             conn.execute(
                 "INSERT OR REPLACE INTO system_settings (key, value_json, updated_at) VALUES ('v3_blank_start_done', 'true', ?)",
+                (now,),
+            )
+
+        # Seed/refresh standardized taxonomy and portal filter rules
+        v4_tax = conn.execute("SELECT value_json FROM system_settings WHERE key = 'v4_taxonomy_seeded'").fetchone()
+        if not v4_tax or conn.execute("SELECT COUNT(*) AS cnt FROM taxonomy_makes").fetchone()["cnt"] == 0:
+            for m in CANONICAL_MAKES:
+                conn.execute(
+                    """
+                    INSERT INTO taxonomy_makes (canonical_name, slug, country, portal_slugs_json, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(canonical_name) DO UPDATE SET
+                        slug = excluded.slug,
+                        country = excluded.country,
+                        portal_slugs_json = excluded.portal_slugs_json
+                    """,
+                    (m["canonical_name"], m["slug"], m.get("country", "EUA"), json.dumps(m.get("portal_slugs", {})), now),
+                )
+                make_id = conn.execute("SELECT id FROM taxonomy_makes WHERE slug = ?", (m["slug"],)).fetchone()["id"]
+                for mod in m.get("models", []):
+                    conn.execute(
+                        """
+                        INSERT INTO taxonomy_models (make_id, canonical_name, slug, year_min_typical, year_max_typical, common_variants_json, portal_slugs_json, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(make_id, slug) DO UPDATE SET
+                            canonical_name = excluded.canonical_name,
+                            year_min_typical = excluded.year_min_typical,
+                            year_max_typical = excluded.year_max_typical,
+                            common_variants_json = excluded.common_variants_json,
+                            portal_slugs_json = excluded.portal_slugs_json
+                        """,
+                        (
+                            make_id,
+                            mod["canonical_name"],
+                            mod["slug"],
+                            mod.get("year_min_typical", 1950),
+                            mod.get("year_max_typical", 1975),
+                            json.dumps(mod.get("common_variants", []), ensure_ascii=False),
+                            json.dumps(mod.get("portal_slugs", {})),
+                            now,
+                        ),
+                    )
+
+            for rule in PORTAL_RULES:
+                param_rules = {
+                    "make": rule.get("param_make", ""),
+                    "model": rule.get("param_model", ""),
+                    "trim": rule.get("param_trim", ""),
+                    "year": rule.get("param_year", ""),
+                    "price_min": rule.get("param_price_min", ""),
+                    "price_max": rule.get("param_price_max", ""),
+                    "zip": rule.get("param_zip", ""),
+                }
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO portal_filter_rules (
+                        portal_id, portal_name, category_scope, filter_hierarchy,
+                        endpoint_type, url_template, param_rules_json, notes, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        rule["portal_id"],
+                        rule["portal_name"],
+                        rule["category_scope"],
+                        rule["filter_hierarchy"],
+                        rule["endpoint_type"],
+                        rule["url_template"],
+                        json.dumps(param_rules, ensure_ascii=False),
+                        rule["notes"],
+                        now,
+                    ),
+                )
+            conn.execute(
+                "INSERT OR REPLACE INTO system_settings (key, value_json, updated_at) VALUES ('v4_taxonomy_seeded', 'true', ?)",
                 (now,),
             )
     conn.close()
@@ -481,3 +592,98 @@ def upsert_listing(conn: sqlite3.Connection, item: dict[str, Any]) -> tuple[bool
         ),
     )
     return False, price_changed, old_price
+
+
+def get_taxonomy_tree(conn: Optional[sqlite3.Connection] = None) -> list[dict[str, Any]]:
+    """Return all canonical vehicle makes with their nested models, variants, and portal identifiers."""
+    close_after = False
+    if conn is None:
+        conn = get_conn()
+        close_after = True
+    try:
+        makes_rows = conn.execute("SELECT * FROM taxonomy_makes ORDER BY canonical_name ASC").fetchall()
+        models_rows = conn.execute("SELECT * FROM taxonomy_models ORDER BY canonical_name ASC").fetchall()
+
+        models_by_make: dict[int, list[dict[str, Any]]] = {}
+        for mr in models_rows:
+            m_dict = dict(mr)
+            try:
+                m_dict["common_variants"] = json.loads(m_dict.get("common_variants_json") or "[]")
+            except Exception:
+                m_dict["common_variants"] = []
+            try:
+                m_dict["portal_slugs"] = json.loads(m_dict.get("portal_slugs_json") or "{}")
+            except Exception:
+                m_dict["portal_slugs"] = {}
+            models_by_make.setdefault(m_dict["make_id"], []).append(m_dict)
+
+        result: list[dict[str, Any]] = []
+        for mkr in makes_rows:
+            mk_dict = dict(mkr)
+            try:
+                mk_dict["portal_slugs"] = json.loads(mk_dict.get("portal_slugs_json") or "{}")
+            except Exception:
+                mk_dict["portal_slugs"] = {}
+            mk_dict["models"] = models_by_make.get(mk_dict["id"], [])
+            result.append(mk_dict)
+        return result
+    finally:
+        if close_after:
+            conn.close()
+
+
+def get_models_for_make(make_slug_or_id: str | int, conn: Optional[sqlite3.Connection] = None) -> list[dict[str, Any]]:
+    """Return list of models for a specific make (by make ID or make slug)."""
+    close_after = False
+    if conn is None:
+        conn = get_conn()
+        close_after = True
+    try:
+        if isinstance(make_slug_or_id, int) or (isinstance(make_slug_or_id, str) and make_slug_or_id.isdigit()):
+            make_id = int(make_slug_or_id)
+        else:
+            row = conn.execute("SELECT id FROM taxonomy_makes WHERE slug = ? OR lower(canonical_name) = lower(?)", (str(make_slug_or_id).lower(), str(make_slug_or_id))).fetchone()
+            if not row:
+                return []
+            make_id = row["id"]
+
+        rows = conn.execute("SELECT * FROM taxonomy_models WHERE make_id = ? ORDER BY canonical_name ASC", (make_id,)).fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["common_variants"] = json.loads(d.get("common_variants_json") or "[]")
+            except Exception:
+                d["common_variants"] = []
+            try:
+                d["portal_slugs"] = json.loads(d.get("portal_slugs_json") or "{}")
+            except Exception:
+                d["portal_slugs"] = {}
+            result.append(d)
+        return result
+    finally:
+        if close_after:
+            conn.close()
+
+
+def get_portal_rules(conn: Optional[sqlite3.Connection] = None) -> list[dict[str, Any]]:
+    """Return portal hierarchy and network parameter rules for top 5 search portals."""
+    close_after = False
+    if conn is None:
+        conn = get_conn()
+        close_after = True
+    try:
+        rows = conn.execute("SELECT * FROM portal_filter_rules ORDER BY portal_name ASC").fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["param_rules"] = json.loads(d.get("param_rules_json") or "{}")
+            except Exception:
+                d["param_rules"] = {}
+            result.append(d)
+        return result
+    finally:
+        if close_after:
+            conn.close()
+
