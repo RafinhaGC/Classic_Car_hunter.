@@ -55,14 +55,6 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "smtp_password": "",
     "smtp_from_name": "Classic Car Hunter • Importação",
     "smtp_use_tls": True,
-    # WhatsApp API configuration
-    "whatsapp_provider": "callmebot",  # callmebot | zapi | evolution | ultramsg | twilio | webhook
-    "whatsapp_api_url": "",
-    "whatsapp_api_key": "",
-    "whatsapp_instance_id": "",
-    "twilio_account_sid": "",
-    "twilio_auth_token": "",
-    "twilio_from_number": "",
     # Brazil Import Calculator parameters
     "usd_brl_rate": 5.75,
     "inland_tow_per_mile_usd": 1.65,
@@ -71,6 +63,27 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "us_export_broker_usd": 950,
     "br_classic_tax_pct": 95.0,
     "br_port_despachante_brl": 12500,
+}
+
+SENSITIVE_SETTING_KEYS = {
+    "smtp_password",
+    "whatsapp_api_key",
+    "twilio_auth_token",
+    "twilio_account_sid",
+}
+
+INTERNAL_MIGRATION_KEYS = {
+    "v3_blank_start_done",
+    "v4_taxonomy_seeded",
+    "v5_taxonomy_10portals_seeded",
+    "initial_watchlist_seeded",
+    "whatsapp_provider",
+    "whatsapp_api_url",
+    "whatsapp_api_key",
+    "whatsapp_instance_id",
+    "twilio_account_sid",
+    "twilio_auth_token",
+    "twilio_from_number",
 }
 
 
@@ -323,9 +336,15 @@ def init_db() -> None:
                 (now,),
             )
 
-        # Seed/refresh standardized taxonomy and portal filter rules
-        v4_tax = conn.execute("SELECT value_json FROM system_settings WHERE key = 'v4_taxonomy_seeded'").fetchone()
-        if not v4_tax or conn.execute("SELECT COUNT(*) AS cnt FROM taxonomy_makes").fetchone()["cnt"] == 0:
+        # Clean up legacy WhatsApp/Twilio settings from DB
+        conn.execute(
+            "DELETE FROM system_settings WHERE key IN ('whatsapp_provider', 'whatsapp_api_url', 'whatsapp_api_key', 'whatsapp_instance_id', 'twilio_account_sid', 'twilio_auth_token', 'twilio_from_number')"
+        )
+
+        # Seed/refresh standardized taxonomy and 10-portal filter rules
+        v5_tax = conn.execute("SELECT value_json FROM system_settings WHERE key = 'v5_taxonomy_10portals_seeded'").fetchone()
+        portal_cnt = conn.execute("SELECT COUNT(*) AS cnt FROM portal_filter_rules").fetchone()["cnt"]
+        if not v5_tax or conn.execute("SELECT COUNT(*) AS cnt FROM taxonomy_makes").fetchone()["cnt"] == 0 or portal_cnt < len(PORTAL_RULES):
             for m in CANONICAL_MAKES:
                 conn.execute(
                     """
@@ -393,13 +412,14 @@ def init_db() -> None:
                     ),
                 )
             conn.execute(
-                "INSERT OR REPLACE INTO system_settings (key, value_json, updated_at) VALUES ('v4_taxonomy_seeded', 'true', ?)",
+                "INSERT OR REPLACE INTO system_settings (key, value_json, updated_at) VALUES ('v5_taxonomy_10portals_seeded', 'true', ?)",
                 (now,),
             )
     conn.close()
 
 
 def get_system_settings(conn: Optional[sqlite3.Connection] = None) -> dict[str, Any]:
+    """Internal settings loader (includes raw smtp_password for backend email dispatch ONLY)."""
     close_after = False
     if conn is None:
         conn = get_conn()
@@ -408,14 +428,42 @@ def get_system_settings(conn: Optional[sqlite3.Connection] = None) -> dict[str, 
         rows = conn.execute("SELECT key, value_json FROM system_settings").fetchall()
         result = dict(DEFAULT_SETTINGS)
         for r in rows:
+            k = r["key"]
+            if k in INTERNAL_MIGRATION_KEYS:
+                continue
             try:
-                result[r["key"]] = json.loads(r["value_json"])
+                result[k] = json.loads(r["value_json"])
             except Exception:
-                result[r["key"]] = r["value_json"]
+                result[k] = r["value_json"]
         return result
     finally:
         if close_after:
             conn.close()
+
+
+def get_masked_settings(conn: Optional[sqlite3.Connection] = None) -> dict[str, Any]:
+    """Public/API-safe settings loader: NEVER exposes smtp_password or API keys in cleartext."""
+    raw = get_system_settings(conn)
+    has_secret = bool(str(raw.get("smtp_password") or "").strip())
+    masked: dict[str, Any] = {}
+    for k, v in raw.items():
+        if k in SENSITIVE_SETTING_KEYS or k in INTERNAL_MIGRATION_KEYS:
+            continue
+        masked[k] = v
+    masked["smtp_password"] = ""
+    masked["smtp_password_configured"] = has_secret
+    masked["smtp_password_masked"] = "••••••••" if has_secret else ""
+    return masked
+
+
+def _is_masked_or_empty_secret(val: Any) -> bool:
+    s = str(val or "").strip()
+    if not s:
+        return True
+    # Ignore placeholder strings composed of bullets or asterisks
+    if set(s).issubset({"•", "*", "●"}):
+        return True
+    return False
 
 
 def update_system_settings(updates: dict[str, Any]) -> dict[str, Any]:
@@ -424,13 +472,17 @@ def update_system_settings(updates: dict[str, Any]) -> dict[str, Any]:
     try:
         with conn:
             for k, v in updates.items():
-                if k in DEFAULT_SETTINGS:
-                    conn.execute(
-                        "INSERT INTO system_settings (key, value_json, updated_at) VALUES (?, ?, ?) "
-                        "ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at",
-                        (k, json.dumps(v), now),
-                    )
-        return get_system_settings(conn)
+                if k not in DEFAULT_SETTINGS:
+                    continue
+                if k in SENSITIVE_SETTING_KEYS and _is_masked_or_empty_secret(v):
+                    # Preserve existing secret in DB when blank or masked placeholder is submitted
+                    continue
+                conn.execute(
+                    "INSERT INTO system_settings (key, value_json, updated_at) VALUES (?, ?, ?) "
+                    "ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at",
+                    (k, json.dumps(v), now),
+                )
+        return get_masked_settings(conn)
     finally:
         conn.close()
 

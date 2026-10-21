@@ -420,7 +420,7 @@
       <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
         <span class="text-[11px] text-slate-300 font-semibold">⚡ Preenchimento Rápido Padronizado:</span>
         <button type="button" onclick="openPortalRulesModal()" class="text-[11px] px-2.5 py-1 rounded-lg bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-500/50 font-medium transition">
-          🔍 Hierarquia & Regras dos 5 Portais
+          🔍 Hierarquia & Regras dos 10 Portais
         </button>
       </div>
       <div class="mt-2 flex flex-wrap gap-1.5">
@@ -830,14 +830,14 @@
   </div>
 
   <!-- ================================================================= -->
-  <!-- MODAL 5: HIERARQUIA DE BUSCA & REGRAS DOS 5 PRINCIPAIS PORTAIS     -->
+  <!-- MODAL 5: HIERARQUIA DE BUSCA & REGRAS DOS 10 PRINCIPAIS PORTAIS    -->
   <!-- ================================================================= -->
   <div id="portalRulesModal" class="modal-shell fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col p-6 shadow-2xl space-y-4 text-xs">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div>
           <span class="text-[10px] uppercase tracking-widest text-amber-400 font-bold">Engenharia Reversa • DevTools Network Analysis</span>
-          <h2 class="text-base font-extrabold text-white">Hierarquia de Filtros & Mapeamento dos 5 Principais Portais dos EUA</h2>
+          <h2 class="text-base font-extrabold text-white">Hierarquia de Filtros & Mapeamento dos 10 Principais Portais dos EUA</h2>
         </div>
         <button onclick="closePortalRulesModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
       </div>
@@ -880,6 +880,21 @@
       setTimeout(() => t.classList.add('hidden'), 4200);
     }
 
+    function escapeHtml(val) {
+      return String(val ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function safeUrl(url) {
+      const raw = String(url ?? '').trim();
+      if (/^https?:\/\//i.test(raw)) return escapeHtml(raw);
+      return '#';
+    }
+
     // Cores de avatar no padrão Ford (azul / prata). Converte as cores antigas salvas no banco.
     function fordAvatarColor(c) {
       const map = { '#f59e0b': '#1f64d6', '#38bdf8': '#c4ccd9' };
@@ -908,7 +923,7 @@
     // =====================================================================
     function quickFillUser(username) {
       document.getElementById('loginUsername').value = username;
-      document.getElementById('loginPassword').value = username === 'rafael' ? '' : '123456';
+      document.getElementById('loginPassword').value = '';
       document.getElementById('loginPassword').focus();
     }
 
@@ -917,21 +932,30 @@
     }
 
     async function checkAuthOnLoad() {
+      try {
+        localStorage.removeItem('cch_settings_backup');
+        localStorage.removeItem('cch_partners_backup');
+      } catch (e) {}
+
       if (!authToken) {
         showLoginModal();
-        return;
+        return false;
       }
       try {
         const res = await fetch('/api/auth/me', { headers: apiHeaders(), cache: 'no-store' });
         if (!res.ok) {
+          authToken = '';
+          localStorage.removeItem('cch_token');
           showLoginModal();
-          return;
+          return false;
         }
         const data = await res.json();
         currentPartner = data.partner;
         updateUserHeaderUI();
+        return true;
       } catch (e) {
         showLoginModal();
+        return false;
       }
     }
 
@@ -990,8 +1014,19 @@
     // DASHBOARD & LISTINGS
     // =====================================================================
     async function loadDashboard() {
+      if (!authToken) {
+        showLoginModal();
+        return;
+      }
       const url = activeWatchlistId ? `/api/dashboard?watchlist_id=${activeWatchlistId}` : '/api/dashboard';
       const res = await fetch(url, { headers: apiHeaders(), cache: 'no-store' });
+      if (res.status === 401) {
+        authToken = '';
+        currentPartner = null;
+        localStorage.removeItem('cch_token');
+        showLoginModal();
+        return;
+      }
       const data = await res.json();
 
       allPartners = data.partners || [];
@@ -1002,47 +1037,6 @@
         await loadTaxonomy();
       }
 
-      // Sincroniza backup local de e-mail/configurações caso o container em nuvem tenha reiniciado
-      try {
-        const localPartnersRaw = localStorage.getItem('cch_partners_backup');
-        if (localPartnersRaw) {
-          const localPartners = JSON.parse(localPartnersRaw);
-          for (const p of allPartners) {
-            const b = localPartners[p.id];
-            if (b && !p.email && b.email) {
-              p.email = b.email;
-              fetch(`/api/partners/${p.id}`, {
-                method: 'PUT',
-                headers: apiHeaders(),
-                body: JSON.stringify({
-                  name: p.name,
-                  role: p.role || '',
-                  whatsapp_phone: '',
-                  email: p.email,
-                  notify_whatsapp: 0,
-                  notify_email: p.notify_email ?? 1,
-                  avatar_color: p.avatar_color || '#f59e0b'
-                })
-              }).catch(() => {});
-            }
-          }
-        }
-        const localSettingsRaw = localStorage.getItem('cch_settings_backup');
-        if (localSettingsRaw) {
-          const localSettings = JSON.parse(localSettingsRaw);
-          let syncSettings = false;
-          for (const k of ['smtp_host', 'smtp_user', 'smtp_password']) {
-            if (!systemSettings[k] && localSettings[k]) {
-              systemSettings[k] = localSettings[k];
-              syncSettings = true;
-            }
-          }
-          if (syncSettings) {
-            fetch('/api/settings', { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(systemSettings) }).catch(() => {});
-          }
-        }
-      } catch (e) {}
-
       // Se a busca ativa não existe mais, mantém null (em branco até o usuário selecionar ou criar)
       if (activeWatchlistId && !allWatchlists.some(w => w.id === activeWatchlistId)) {
         activeWatchlistId = null;
@@ -1052,8 +1046,8 @@
       const editBtn = document.getElementById('btnEditWatchlist');
       const blankOpt = `<option value="" ${!activeWatchlistId ? 'selected' : ''}>— Selecione uma pesquisa ou clique em "+ Nova Pesquisa" —</option>`;
       const wlOpts = allWatchlists.map(w => {
-        const clientTag = w.client_name ? ` [${w.client_name}]` : '';
-        return `<option value="${w.id}" ${w.id === activeWatchlistId ? 'selected' : ''}>${w.name}${clientTag}</option>`;
+        const clientTag = w.client_name ? ` [${escapeHtml(w.client_name)}]` : '';
+        return `<option value="${Number(w.id)}" ${w.id === activeWatchlistId ? 'selected' : ''}>${escapeHtml(w.name)}${clientTag}</option>`;
       }).join('');
       sel.innerHTML = blankOpt + wlOpts;
 
@@ -1080,7 +1074,7 @@
         return;
       }
 
-      document.getElementById('wlOwnerBadge').innerHTML = `👤 Criado por: <strong class="text-white ml-1">${activeWl.owner_name || 'Rafael Campos'}</strong>`;
+      document.getElementById('wlOwnerBadge').innerHTML = `👤 Criado por: <strong class="text-white ml-1">${escapeHtml(activeWl.owner_name || 'Rafael Campos')}</strong>`;
       document.getElementById('wlClientBadge').textContent = `📋 Demanda: ${activeWl.client_name || 'Pesquisa Sob Demanda'}`;
 
       let schedText = 'Manual';
@@ -1198,6 +1192,7 @@
       params.set('sort_by', document.getElementById('sortSelect').value);
 
       const res = await fetch(`/api/listings?${params.toString()}`, { headers: apiHeaders(), cache: 'no-store' });
+      if (!res.ok) return;
       const data = await res.json();
       currentListings = data.items || [];
       document.getElementById('resultsCountLabel').textContent = `${data.count || 0} veículo(s)`;
@@ -1250,16 +1245,17 @@
 
       grid.innerHTML = items.map((it, idx) => {
         const srcBadge = sourceColors[it.source] || 'bg-slate-800 text-slate-300';
-        const scoreColor = it.match_score >= 70 ? 'bg-emerald-500 text-slate-950' : (it.match_score >= 52 ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-slate-200');
+        const scoreVal = Number(it.match_score) || 0;
+        const scoreColor = scoreVal >= 70 ? 'bg-emerald-500 text-slate-950' : (scoreVal >= 52 ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-slate-200');
         const imp = it.import_estimate;
-        const brBadge = imp ? `<span class="text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-lg">🚢 ${imp.short_display}</span>` : '';
+        const brBadge = imp ? `<span class="text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-lg">🚢 ${escapeHtml(imp.short_display)}</span>` : '';
         const newBadge = it.is_new ? `<span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-400 text-slate-950">NOVO</span>` : '';
         const distBadge = it.distance_miles != null
           ? `<span class="text-[11px] font-semibold ${it.distance_miles <= 350 ? 'text-emerald-400' : 'text-slate-300'}">📍 ${Math.round(it.distance_miles)} mi de Deerfield Beach</span>`
-          : `<span class="text-[11px] text-slate-400">📍 ${it.location || 'EUA'}</span>`;
+          : `<span class="text-[11px] text-slate-400">📍 ${escapeHtml(it.location || 'EUA')}</span>`;
 
         const imgHtml = it.image_url
-          ? `<img src="${it.image_url}" alt="${it.title}" loading="lazy" onerror="this.src='https://placehold.co/600x400/08183c/8fb8ff?text=Ve%C3%ADculo+EUA'" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300" />`
+          ? `<img src="${safeUrl(it.image_url)}" alt="${escapeHtml(it.title)}" loading="lazy" onerror="this.src='https://placehold.co/600x400/08183c/8fb8ff?text=Ve%C3%ADculo+EUA'" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300" />`
           : `<div class="w-full h-48 bg-slate-950 flex items-center justify-center text-slate-600 text-xs">Sem Foto Disponível</div>`;
 
         return `
@@ -1268,40 +1264,40 @@
               <div class="relative overflow-hidden bg-slate-950">
                 ${imgHtml}
                 <div class="absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5">
-                  <span class="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-md border backdrop-blur-md ${srcBadge}">${it.source}</span>
+                  <span class="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-md border backdrop-blur-md ${srcBadge}">${escapeHtml(it.source)}</span>
                   ${newBadge}
                 </div>
                 <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5">
-                  <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-md shadow ${scoreColor}">Score ${it.match_score}</span>
+                  <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-md shadow ${scoreColor}">Score ${scoreVal}</span>
                 </div>
                 <div class="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between">
                   <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-slate-950/90 text-slate-100 border border-slate-700/80 backdrop-blur-md">
-                    ${it.match_tier_label}
+                    ${escapeHtml(it.match_tier_label)}
                   </span>
                 </div>
               </div>
 
               <div class="p-4 space-y-2.5">
-                <h3 class="font-extrabold text-white text-sm leading-snug line-clamp-2" title="${it.title}">
-                  ${it.title}
+                <h3 class="font-extrabold text-white text-sm leading-snug line-clamp-2" title="${escapeHtml(it.title)}">
+                  ${escapeHtml(it.title)}
                 </h3>
 
                 <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-                  <div class="text-lg font-black text-emerald-400">${it.price_display || 'Sob consulta'}</div>
+                  <div class="text-lg font-black text-emerald-400">${escapeHtml(it.price_display || 'Sob consulta')}</div>
                   ${brBadge}
                 </div>
 
                 <div class="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-800/70">
                   ${distBadge}
-                  <span class="text-[11px] text-slate-500 truncate max-w-[130px]">${it.location || ''}</span>
+                  <span class="text-[11px] text-slate-500 truncate max-w-[130px]">${escapeHtml(it.location || '')}</span>
                 </div>
 
                 <div class="flex flex-wrap gap-1 pt-1">
-                  ${(it.match_reasons || []).slice(0, 3).map(r => `<span class="text-[10px] px-2 py-0.5 rounded bg-slate-800/90 text-slate-300">${r}</span>`).join('')}
+                  ${(it.match_reasons || []).slice(0, 3).map(r => `<span class="text-[10px] px-2 py-0.5 rounded bg-slate-800/90 text-slate-300">${escapeHtml(r)}</span>`).join('')}
                 </div>
 
                 <div class="pt-1">
-                  <input type="text" value="${(it.notes || '').replace(/"/g, '&quot;')}"
+                  <input type="text" value="${escapeHtml(it.notes || '')}"
                     placeholder="📝 Adicionar observação sobre este veículo..."
                     onblur="saveListingNote('${encodeURIComponent(it.id)}', this.value)"
                     class="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-slate-200 focus:border-amber-500 focus:outline-none" />
@@ -1328,7 +1324,7 @@
                 </button>
               </div>
 
-              <a href="${it.url}" target="_blank" rel="noopener"
+              <a href="${safeUrl(it.url)}" target="_blank" rel="noopener noreferrer"
                 class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">
                 Abrir Anúncio ↗
               </a>
@@ -1416,7 +1412,7 @@
     }
 
     // =====================================================================
-    // TAXONOMIA, SELETORES DEPENDENTES & ENGENHARIA REVERSA DOS 5 PORTAIS
+    // TAXONOMIA, SELETORES DEPENDENTES & ENGENHARIA REVERSA DOS 10 PORTAIS
     // =====================================================================
     async function loadTaxonomy() {
       try {
@@ -1443,7 +1439,7 @@
       const sel = document.getElementById('wlMakeSelect');
       if (!sel) return;
       sel.innerHTML = '<option value="">-- Selecione uma Marca Padronizada --</option>' +
-        taxonomyMakes.map(m => `<option value="${m.canonical_name}">${m.canonical_name} (${m.country})</option>`).join('') +
+        taxonomyMakes.map(m => `<option value="${escapeHtml(m.canonical_name)}">${escapeHtml(m.canonical_name)} (${escapeHtml(m.country)})</option>`).join('') +
         '<option value="__custom__">➕ [ Outro / Digitar Marca Personalizada... ]</option>';
       if (selectedMake) {
         const found = taxonomyMakes.find(m => m.canonical_name.toLowerCase() === selectedMake.toLowerCase());
@@ -1501,7 +1497,7 @@
 
       modelSel.disabled = false;
       modelSel.innerHTML = '<option value="">-- Selecione um Modelo Válido --</option>' +
-        models.map(m => `<option value="${m.canonical_name}">${m.canonical_name} (${m.year_min_typical}–${m.year_max_typical})</option>`).join('') +
+        models.map(m => `<option value="${escapeHtml(m.canonical_name)}">${escapeHtml(m.canonical_name)} (${escapeHtml(m.year_min_typical)}–${escapeHtml(m.year_max_typical)})</option>`).join('') +
         '<option value="__custom__">➕ [ Outro / Digitar Modelo Personalizado... ]</option>';
 
       if (targetModel) {
@@ -1589,17 +1585,18 @@
       const currentKws = kwInput.value.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
 
       container.innerHTML = variants.map(v => {
-        const isActive = currentKws.includes(v.toLowerCase());
+        const isActive = currentKws.includes(String(v).toLowerCase());
         const activeClass = isActive
           ? 'bg-amber-500 text-slate-950 font-extrabold border-amber-400 shadow-sm'
           : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white';
-        return `<button type="button" onclick="toggleVariantKeyword('${v.replace(/'/g, "\\'")}')" class="text-[11px] px-2.5 py-1 rounded-lg border transition ${activeClass}">
-          ${isActive ? '✓ ' : '+ '}${v}
+        return `<button type="button" data-variant="${escapeHtml(v)}" onclick="toggleVariantKeyword(this.dataset.variant)" class="text-[11px] px-2.5 py-1 rounded-lg border transition ${activeClass}">
+          ${isActive ? '✓ ' : '+ '}${escapeHtml(v)}
         </button>`;
       }).join('');
     }
 
     function toggleVariantKeyword(variant) {
+      if (!variant) return;
       const kwInput = document.getElementById('wlKeywords');
       let currentKws = kwInput.value.split(',').map(s => s.trim()).filter(Boolean);
       const vLower = variant.toLowerCase();
@@ -1657,30 +1654,30 @@
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
             <div class="flex items-center gap-2">
-              <span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 font-mono">${p.portal_id.toUpperCase()}</span>
-              <span class="font-extrabold text-white text-sm">${p.portal_name}</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 font-mono">${escapeHtml((p.portal_id || '').toUpperCase())}</span>
+              <span class="font-extrabold text-white text-sm">${escapeHtml(p.portal_name)}</span>
             </div>
-            <span class="text-[11px] text-sky-400 font-mono">${p.category_scope || 'Veículos Clássicos'}</span>
+            <span class="text-[11px] text-sky-400 font-mono">${escapeHtml(p.category_scope || 'Veículos Clássicos')}</span>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-[11px]">
             <div>
               <span class="text-slate-400 block font-semibold mb-0.5">Hierarquia Exata de Filtros:</span>
-              <span class="text-amber-200 font-medium">${p.filter_hierarchy}</span>
+              <span class="text-amber-200 font-medium">${escapeHtml(p.filter_hierarchy)}</span>
             </div>
             <div>
               <span class="text-slate-400 block font-semibold mb-0.5">Tipo de Endpoint / Estrutura:</span>
-              <span class="text-slate-200 font-mono">${p.endpoint_type}</span>
+              <span class="text-slate-200 font-mono">${escapeHtml(p.endpoint_type)}</span>
             </div>
           </div>
 
           <div class="bg-slate-900 rounded-lg p-2.5 font-mono text-[11px] text-slate-300 break-all border border-slate-800">
             <span class="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Parâmetros Enviados via Network / URL:</span>
-            ${p.url_template}
+            ${escapeHtml(p.url_template)}
           </div>
 
           <div class="text-[11px] text-slate-300 bg-sky-950/30 border border-sky-800/40 rounded-lg p-2.5">
-            <strong class="text-sky-300">Regra de Engenharia Reversa:</strong> ${p.notes}
+            <strong class="text-sky-300">Regra de Engenharia Reversa:</strong> ${escapeHtml(p.notes)}
           </div>
         </div>
       `).join('');
@@ -1735,7 +1732,7 @@
       isCreatingWatchlist = createNew;
       clearConsistencyError();
       const ownerSel = document.getElementById('wlOwnerPartnerId');
-      ownerSel.innerHTML = allPartners.map(p => `<option value="${p.id}">${p.name} (${p.role})</option>`).join('');
+      ownerSel.innerHTML = allPartners.map(p => `<option value="${Number(p.id)}">${escapeHtml(p.name)} (${escapeHtml(p.role)})</option>`).join('');
 
       const delBtn = document.getElementById('btnDeleteWatchlist');
       if (createNew) {
@@ -1963,67 +1960,55 @@
 
     function renderPartnersCards() {
       const container = document.getElementById('partnersListContainer');
-      container.innerHTML = allPartners.map(p => `
+      container.innerHTML = allPartners.map(p => {
+        const pid = Number(p.id);
+        const safeColor = escapeHtml(p.avatar_color || '#f59e0b');
+        return `
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="w-8 h-8 rounded-full flex items-center justify-center text-slate-950 font-black text-xs" style="background:${fordAvatarColor(p.avatar_color)};color:${isLightColor(fordAvatarColor(p.avatar_color)) ? '#030f27' : '#fff'}">
-                U${p.id}
+                U${pid}
               </span>
               <div>
-                <div class="font-bold text-white text-sm">${p.name}</div>
-                <div class="text-[11px] text-slate-400">Usuário: <code>${p.username}</code></div>
+                <div class="font-bold text-white text-sm">${escapeHtml(p.name)}</div>
+                <div class="text-[11px] text-slate-400">Usuário: <code>${escapeHtml(p.username)}</code></div>
               </div>
             </div>
           </div>
 
           <div>
             <label class="block text-slate-400 mb-1">Nome de Exibição</label>
-            <input id="pName_${p.id}" type="text" value="${p.name}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            <input id="pName_${pid}" type="text" value="${escapeHtml(p.name)}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div>
             <label class="block text-slate-400 mb-1">Cargo / Função</label>
-            <input id="pRole_${p.id}" type="text" value="${p.role || ''}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            <input id="pRole_${pid}" type="text" value="${escapeHtml(p.role || '')}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div>
             <label class="block text-slate-400 mb-1">📧 E-mail para Alertas</label>
-            <input id="pEmail_${p.id}" type="email" value="${p.email || ''}" placeholder="email@empresa.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            <input id="pEmail_${pid}" type="email" value="${escapeHtml(p.email || '')}" placeholder="email@empresa.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div>
             <label class="block text-slate-400 mb-1">🔑 Alterar Senha (deixe em branco p/ manter)</label>
-            <input id="pPass_${p.id}" type="password" placeholder="Nova senha..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
+            <input id="pPass_${pid}" type="password" placeholder="Nova senha..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white" />
           </div>
 
           <div class="flex items-center justify-between pt-2">
             <label class="inline-flex items-center gap-1.5 text-slate-300">
-              <input id="pNotifEmail_${p.id}" type="checkbox" ${p.notify_email ? 'checked' : ''} class="rounded bg-slate-900 border-slate-700 text-amber-500" />
+              <input id="pNotifEmail_${pid}" type="checkbox" ${p.notify_email ? 'checked' : ''} class="rounded bg-slate-900 border-slate-700 text-amber-500" />
               <span>Receber Alertas por E-mail</span>
             </label>
-            <button type="button" onclick="savePartnerCard(${p.id}, '${p.avatar_color || '#f59e0b'}', this)" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition">
+            <button type="button" data-color="${safeColor}" onclick="savePartnerCard(${pid}, this.dataset.color, this)" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition">
               💾 Salvar Perfil
             </button>
           </div>
         </div>
-      `).join('');
-    }
-
-    function persistPartnersLocalBackup() {
-      try {
-        const map = {};
-        for (const p of allPartners) {
-          map[p.id] = {
-            name: p.name,
-            role: p.role,
-            email: p.email,
-            notify_email: p.notify_email,
-            avatar_color: p.avatar_color
-          };
-        }
-        localStorage.setItem('cch_partners_backup', JSON.stringify(map));
-      } catch (e) {}
+      `;
+      }).join('');
     }
 
     async function savePartnerCard(pid, color, btnEl = null) {
@@ -2044,7 +2029,6 @@
       if (idx !== -1) {
         allPartners[idx] = { ...allPartners[idx], ...payload };
       }
-      persistPartnersLocalBackup();
 
       if (btnEl) btnEl.textContent = '⏳ Salvando...';
 
@@ -2058,12 +2042,18 @@
           const data = await res.json();
           if (data.partner && idx !== -1) {
             allPartners[idx] = data.partner;
-            persistPartnersLocalBackup();
           }
           if (currentPartner && currentPartner.id === pid) {
             currentPartner = data.partner || allPartners[idx];
             updateUserHeaderUI();
           }
+          const passEl = document.getElementById(`pPass_${pid}`);
+          if (passEl) passEl.value = '';
+        } else {
+          const err = await res.json().catch(() => ({}));
+          showToast(err.detail || 'Erro ao atualizar perfil.');
+          if (btnEl) btnEl.textContent = '💾 Salvar Perfil';
+          return false;
         }
       } catch (e) {}
 
@@ -2094,11 +2084,15 @@
     }
 
     function populateChannelSettingsForm() {
-      document.getElementById('cfgSmtpHost').value = systemSettings.smtp_host || 'brevo.com';
+      document.getElementById('cfgSmtpHost').value = systemSettings.smtp_host || 'smtp.gmail.com';
       document.getElementById('cfgSmtpPort').value = systemSettings.smtp_port || 587;
       document.getElementById('cfgSmtpFromName').value = systemSettings.smtp_from_name || 'Classic Car Hunter';
       document.getElementById('cfgSmtpUser').value = systemSettings.smtp_user || 'rafael-reseach@urbanabrasil.com';
-      document.getElementById('cfgSmtpPassword').value = systemSettings.smtp_password || '';
+      const pwdInput = document.getElementById('cfgSmtpPassword');
+      pwdInput.value = '';
+      pwdInput.placeholder = systemSettings.smtp_password_configured
+        ? '•••••••• (Chave configurada e protegida — digite apenas p/ substituir)'
+        : 'Cole sua chave API Brevo (xkeysib-...) ou Senha de App';
       document.getElementById('cfgUsdBrl').value = systemSettings.usd_brl_rate || 5.75;
       document.getElementById('cfgTowPerMile').value = systemSettings.inland_tow_per_mile_usd || 1.65;
       document.getElementById('cfgOceanFreight').value = systemSettings.ocean_freight_usd || 2800;
@@ -2123,28 +2117,31 @@
           await fetch(`/api/partners/${p.id}`, { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(pPayload) }).catch(() => {});
         }
       }
-      persistPartnersLocalBackup();
 
+      const typedPassword = document.getElementById('cfgSmtpPassword').value.trim();
       const payload = {
         smtp_host: document.getElementById('cfgSmtpHost').value.trim(),
         smtp_port: parseInt(document.getElementById('cfgSmtpPort').value, 10) || 587,
         smtp_from_name: document.getElementById('cfgSmtpFromName').value.trim(),
         smtp_user: document.getElementById('cfgSmtpUser').value.trim(),
-        smtp_password: document.getElementById('cfgSmtpPassword').value.trim(),
         usd_brl_rate: parseFloat(document.getElementById('cfgUsdBrl').value) || 5.75,
         inland_tow_per_mile_usd: parseFloat(document.getElementById('cfgTowPerMile').value) || 1.65,
         ocean_freight_usd: parseInt(document.getElementById('cfgOceanFreight').value, 10) || 2800,
         br_classic_tax_pct: parseFloat(document.getElementById('cfgClassicTaxPct').value) || 95.0
       };
-      systemSettings = { ...systemSettings, ...payload };
-      try {
-        localStorage.setItem('cch_settings_backup', JSON.stringify(systemSettings));
-      } catch (e) {}
+      if (typedPassword) {
+        payload.smtp_password = typedPassword;
+      }
 
       const res = await fetch('/api/settings', { method: 'PUT', headers: apiHeaders(), body: JSON.stringify(payload) });
-      if (res.ok && !silent) {
-        showToast('✅ Configurações de e-mail e calculadora salvas!');
-        await loadDashboard();
+      if (res.ok) {
+        const data = await res.json();
+        systemSettings = data.settings || systemSettings;
+        populateChannelSettingsForm();
+        if (!silent) {
+          showToast('✅ Configurações de e-mail e calculadora salvas com segurança!');
+          await loadDashboard();
+        }
       }
     }
 
@@ -2156,6 +2153,7 @@
 
     async function loadNotificationsHistory() {
       const res = await fetch('/api/notifications?limit=30', { headers: apiHeaders(), cache: 'no-store' });
+      if (!res.ok) return;
       const data = await res.json();
       const list = data.notifications || [];
       const scans = data.scan_logs || [];
@@ -2171,11 +2169,11 @@
             <div class="bg-slate-950 border ${isErr ? 'border-rose-500/40' : 'border-slate-800'} rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
               <div class="space-y-0.5">
                 <div class="flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeCls}">${n.status.toUpperCase()}</span>
-                  <span class="font-bold text-white">📧 E-mail → ${n.partner_name} (${n.recipient})</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeCls}">${escapeHtml((n.status || '').toUpperCase())}</span>
+                  <span class="font-bold text-white">📧 E-mail → ${escapeHtml(n.partner_name)} (${escapeHtml(n.recipient)})</span>
                 </div>
-                <div class="text-[11px] text-slate-400">${n.subject} • ${n.items_count} veículo(s) • ${new Date(n.created_at).toLocaleString('pt-BR')}</div>
-                <div class="text-[11px] ${isErr ? 'text-rose-400 font-semibold' : 'text-emerald-400'}">${n.error_message || ''}</div>
+                <div class="text-[11px] text-slate-400">${escapeHtml(n.subject)} • ${Number(n.items_count) || 0} veículo(s) • ${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+                <div class="text-[11px] ${isErr ? 'text-rose-400 font-semibold' : 'text-emerald-400'}">${escapeHtml(n.error_message || '')}</div>
               </div>
             </div>
           `;
@@ -2191,9 +2189,9 @@
           return `
             <div class="bg-slate-950 border ${isErr ? 'border-rose-500/40' : 'border-slate-800'} rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <div class="font-bold text-white">Pesquisa #${s.watchlist_id} • Status: <span class="${isErr ? 'text-rose-400' : 'text-emerald-400'}">${s.status.toUpperCase()}</span></div>
-                <div class="text-[11px] text-slate-400">Veículos encontrados: ${s.total_scraped} (${s.interesting_new_listings || 0} novos relevantes) • ${new Date(s.started_at).toLocaleString('pt-BR')}</div>
-                ${s.error_message ? `<div class="text-[11px] text-rose-400">Falha: ${s.error_message}</div>` : ''}
+                <div class="font-bold text-white">Pesquisa #${Number(s.watchlist_id) || 0} • Status: <span class="${isErr ? 'text-rose-400' : 'text-emerald-400'}">${escapeHtml((s.status || '').toUpperCase())}</span></div>
+                <div class="text-[11px] text-slate-400">Veículos encontrados: ${Number(s.total_scraped) || 0} (${Number(s.interesting_new_listings) || 0} novos relevantes) • ${new Date(s.started_at).toLocaleString('pt-BR')}</div>
+                ${s.error_message ? `<div class="text-[11px] text-rose-400">Falha: ${escapeHtml(s.error_message)}</div>` : ''}
               </div>
             </div>
           `;
@@ -2215,8 +2213,8 @@
       const activeWl = allWatchlists.find(w => w.id === activeWatchlistId) || {};
       const sel = document.getElementById('manualNotifyPartnerSelect');
       sel.innerHTML = `
-        <option value="">🎯 Responsável pela Pesquisa (${activeWl.owner_name || 'Rafael Campos'})</option>
-        ${allPartners.map(p => `<option value="${p.id}">${p.name} (${p.email || 'Sem e-mail cadastrado'})</option>`).join('')}
+        <option value="">🎯 Responsável pela Pesquisa (${escapeHtml(activeWl.owner_name || 'Rafael Campos')})</option>
+        ${allPartners.map(p => `<option value="${Number(p.id)}">${escapeHtml(p.name)} (${escapeHtml(p.email || 'Sem e-mail cadastrado')})</option>`).join('')}
       `;
       document.getElementById('alertDispatchResultBox').classList.add('hidden');
       document.getElementById('sendAlertModal').classList.remove('hidden');
@@ -2296,6 +2294,7 @@
       };
 
       const res = await fetch('/api/import-calc', { method: 'POST', headers: apiHeaders(), body: JSON.stringify(payload) });
+      if (!res.ok) return;
       const data = await res.json();
       const est = data.estimate;
       if (!est) return;
@@ -2304,14 +2303,14 @@
       }
 
       document.getElementById('calcBreakdownBox').innerHTML = `
-        <div class="flex justify-between text-slate-300"><span>Valor FOB do Veículo (EUA):</span><strong>$${est.fob_usd.toLocaleString()} (R$ ${est.fob_brl.toLocaleString('pt-BR')})</strong></div>
-        <div class="flex justify-between text-slate-300"><span>Frete Interno EUA até Porto FL:</span><strong>$${est.inland_tow_usd.toLocaleString()}</strong></div>
-        <div class="flex justify-between text-slate-300"><span>Frete Marítimo (Flórida → Brasil) + Broker:</span><strong>$${(est.ocean_freight_usd + est.us_export_broker_usd).toLocaleString()}</strong></div>
-        <div class="flex justify-between text-slate-300"><span>Impostos Federais/Estaduais Clássico (&gt;30 anos):</span><strong>R$ ${est.taxes_brl.toLocaleString('pt-BR')}</strong></div>
-        <div class="flex justify-between text-slate-300"><span>Desembaraço Aduaneiro &amp; Armazenagem BR:</span><strong>R$ ${est.despachante_brl.toLocaleString('pt-BR')}</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Valor FOB do Veículo (EUA):</span><strong>$${Number(est.fob_usd).toLocaleString()} (R$ ${Number(est.fob_brl).toLocaleString('pt-BR')})</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Frete Interno EUA até Porto FL:</span><strong>$${Number(est.inland_tow_usd).toLocaleString()}</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Frete Marítimo (Flórida → Brasil) + Broker:</span><strong>$${Number(est.ocean_freight_usd + est.us_export_broker_usd).toLocaleString()}</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Impostos Federais/Estaduais Clássico (&gt;30 anos):</span><strong>R$ ${Number(est.taxes_brl).toLocaleString('pt-BR')}</strong></div>
+        <div class="flex justify-between text-slate-300"><span>Desembaraço Aduaneiro &amp; Armazenagem BR:</span><strong>R$ ${Number(est.despachante_brl).toLocaleString('pt-BR')}</strong></div>
         <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-sm">
           <span class="font-bold text-amber-400">CUSTO TOTAL ESTIMADO NO BRASIL:</span>
-          <span class="text-lg font-black text-emerald-400">${est.total_landed_display}</span>
+          <span class="text-lg font-black text-emerald-400">${escapeHtml(est.total_landed_display)}</span>
         </div>
       `;
       activeCalcListing._lastEstimate = est;
@@ -2334,8 +2333,12 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      await checkAuthOnLoad();
-      await loadDashboard();
+      const authed = await checkAuthOnLoad();
+      if (authed) {
+        await loadDashboard();
+      } else {
+        renderListingsGrid([]);
+      }
     });
   </script>
 </body>
